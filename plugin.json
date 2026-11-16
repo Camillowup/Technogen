@@ -1,0 +1,41 @@
+{
+  "slug": "GenraTechno",
+  "name": "GENRA TECHNO",
+  "version": "2.0.0",
+  "license": "GPL-3.0-only",
+  "brand": "Genra",
+  "author": "Bastian Ofner",
+  "authorEmail": "",
+  "authorUrl": "https://github.com/Camillowup",
+  "pluginUrl": "https://github.com/Camillowup/Technogen",
+  "manualUrl": "https://github.com/Camillowup/Technogen/blob/main/README.md",
+  "sourceUrl": "https://github.com/Camillowup/Technogen",
+  "donateUrl": "",
+  "changelogUrl": "https://github.com/Camillowup/Technogen/blob/main/CHANGELOG.md",
+  "modules": [
+    {
+      "slug": "GenraTechno",
+      "name": "GENRA TECHNO",
+      "description": "A generative sequencer for techno and club music: 22 styles in 8 families (Detroit, Berlin, Acid, Hard, Melodic, House, Trance, Electro), five tracks (drums, bass, stab, lead, atmo), a whole song made live (intro, groove, build, drop, break, outro) with ten kinds of build, PERFORM keys, energy and evolve",
+      "tags": ["Sequencer", "Drum", "Random", "Polyphonic"]
+    },
+    {
+      "slug": "TechnoGrid",
+      "name": "GENRA TECHNO GRID",
+      "description": "The editor of GENRA TECHNO: drum raster and piano roll, velocity, chance and ratchets per step, an own loop length per track (polymeter), REC from MIDI",
+      "tags": ["Sequencer", "Utility"]
+    },
+    {
+      "slug": "TechnoAblauf",
+      "name": "GENRA TECHNO ABLAUF",
+      "description": "The song arranger of GENRA TECHNO: 64 pattern pads, variations per part, a song list in 8 to 64 bar rows, MAKE SONG in club forms (DJ intro and outro), song MIDI export",
+      "tags": ["Sequencer", "Utility"]
+    },
+    {
+      "slug": "TechnoMod",
+      "name": "GENRA TECHNO MOD",
+      "description": "Four CV lanes that move with the song: one movement per part and lane (rise, swell, wave, pump, wander, jump, dip …), depth, smooth, GROW for later drops, a song view",
+      "tags": ["Modulator", "Sequencer"]
+    }
+  ]
+}

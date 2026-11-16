@@ -1,0 +1,93 @@
+name: Build GENRA TECHNO
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Rack SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://vcvrack.com/downloads/Rack-SDK-latest-win-x64.zip -OutFile sdk.zip
+          Expand-Archive sdk.zip -DestinationPath sdk
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            make zip tar zstd sed
+            mingw-w64-x86_64-gcc
+
+      - name: Test the engine (without Rack)
+        run: |
+          g++ -std=c++11 -O2 -D_USE_MATH_DEFINES test/tg_test.cpp src/tg/Engine.cpp -o tgt.exe
+          ./tgt.exe
+
+      - name: Build
+        run: |
+          VER=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' plugin.json)
+          echo "Version $VER"
+          make RACK_DIR=sdk/Rack-SDK SLUG=GenraTechno VERSION=$VER -j4 dist
+
+      - name: Check the package
+        run: |
+          D=dist/GenraTechno
+          ls -la $D $D/res
+          test -f $D/plugin.dll
+          for p in GenraTechno TechnoGrid TechnoAblauf TechnoMod; do test -f $D/res/$p.svg; done
+          test -f $D/res/knob/large.svg
+          if objdump -p $D/plugin.dll | grep -iE "libstdc"; then echo "plugin.dll loads libstdc++"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: genra-techno-windows
+          path: dist/*.vcvplugin
+
+  mac:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-15
+          - arch: x64
+            os: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Rack SDK
+        run: |
+          curl -sSL -o sdk.zip https://vcvrack.com/downloads/Rack-SDK-latest-mac-${{ matrix.arch }}.zip
+          mkdir sdk && cd sdk && unzip -q ../sdk.zip
+
+      - name: Compiler
+        run: |
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            echo "CC=clang -arch x86_64" >> $GITHUB_ENV
+            echo "CXX=clang++ -arch x86_64" >> $GITHUB_ENV
+          fi
+          brew install zstd || true
+
+      - name: Build
+        run: |
+          VER=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' plugin.json)
+          make RACK_DIR=$GITHUB_WORKSPACE/sdk/Rack-SDK SLUG=GenraTechno VERSION=$VER -j4 dist
+          ls dist/*.vcvplugin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: genra-techno-mac-${{ matrix.arch }}
+          path: dist/*.vcvplugin
