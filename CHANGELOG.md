@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.2 (16 Nov 2026, test build, no release)
+
+- The choices under the display are narrower: FAM, STYLE, KEY, the new **SCALE** and BUILD. SCALE: AUTO (the style's),
+  MINOR, DORIAN, PHRYGIAN, MAJOR, HARM. MINOR, MIXOLYDIAN, LYDIAN. A new scale keeps rhythm and key: every note keeps its
+  degree, locked tracks stay as they are. GRID's SNAP and SCALE view use it too.
+- **Follow GENRA**: the instruments of GENRA and GENRA Instruments (from their 2.40.0) can follow GENRA TECHNO without
+  cables: DRUMS, BASS, LEAD (as melody), ATMO (as pads) and, new, **Stab (GENRA TECHNO)**. NEW ALL, NEW of a track and
+  a new style load a preset for the style in the instruments that follow (Presets follow GENRA).
+
 ## 2.0.1 (16 Nov 2026, test build, no release)
 
 - MAIN | LIVE SONG in the display: MAIN (the default, also after NEW ALL) plays the drop in a loop, all tracks, so you

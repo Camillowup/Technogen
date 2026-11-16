@@ -12,6 +12,7 @@
 #include "tg/Engine.hpp"
 #include "link/Hub.hpp"
 #include "link/GenraPorts.hpp"
+#include "link/Follow.hpp"
 #include <atomic>
 #include <mutex>
 #include <deque>
@@ -85,6 +86,7 @@ struct GenraTechno : Module {
 	// ---------------------------------------------------------------- what is saved
 	tg::Pattern pat;
 	int style = 2, key = 9, forcedBuild = tg::B_AUTO;
+	int scaleSel = -1; // -1: the style's scale
 	int typeSel[tg::NUM_TRACKS] = {-1, -1, -1, -1, -1}; // -1: the style's
 	bool lock[tg::NUM_TRACKS] = {}, mute[tg::NUM_TRACKS] = {};
 	std::atomic<int> solo{-1}; // GRID's SOLO: only this track
@@ -163,7 +165,7 @@ struct GenraTechno : Module {
 	int mainIdx = 0;
 
 	// FOLLOW: GENRA's output layout for the instruments of the GENRA plugins (link hub)
-	enum { FOLLOW_OUTS = genraports::RESET_OUTPUT + 1 };
+	enum { FOLLOW_OUTS = genraports::STAB_VEL_OUTPUT + 1 }; // GENRA's layout plus the STAB (2.0.2)
 	float followPub[2][FOLLOW_OUTS][genraports::PUB_CHANNELS] = {};
 
 	GenraTechno();
@@ -192,4 +194,7 @@ struct GenraTechno : Module {
 	void updateView();
 	float bpm();
 	int effectiveType(int t) { return typeSel[t] >= 0 ? typeSel[t] : tg::styleType(style, t); }
+	int effectiveScale() { return scaleSel >= 0 ? scaleSel : tg::styles()[style].mode; }
+	/** UI: instruments that follow track t of this GENRA TECHNO load a preset for the style (Presets follow GENRA). */
+	int rollPresets(int t);
 };

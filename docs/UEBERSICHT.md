@@ -19,6 +19,7 @@ Plugin `GenraTechno` (Marke Genra), vier Module. Stand 2.0.0 (16. Nov. 2026).
 - GRID, ABLAUF und MOD finden das Hauptmodul über die Registry (`TechnoLink`, Rechtsklick › Connect to).
 - Variante C: Das Hauptmodul allein spielt einen LIVE-Song. ABLAUF im SONG-Modus übergibt ein `SongScript`,
   dann spielt das Hauptmodul dessen Zeilen. MOD folgt immer dem, was das Hauptmodul gerade spielt.
-- Follow (GENRA Instruments): Das Hauptmodul meldet sich am Link-Hub an, Ausgänge im GENRA-Layout
-  (DRUMS → Drums, BASS → Bass, LEAD → Melodie, ATMO → Pads). Die Instrumente erkennen es aber erst nach einem Update
-  von GENRA Instruments (Slug `GenraTechno` in `isSource`), siehe MERKLISTE.
+- Follow (GENRA, GENRA Instruments ab 2.40.0): Das Hauptmodul meldet sich am Link-Hub an, Ausgänge im GENRA-Layout
+  (DRUMS → Drums, BASS → Bass, LEAD → Melodie, ATMO → Pads) plus STAB (`genraports::STAB_*`, Spur „Stab“).
+  `src/link/Follow.hpp` und `GenraPorts.hpp` sind Kopien aus Genra-for-Vcv und müssen gleich bleiben (Hub-Version).
+  Presets der Folger wechselt `GenraTechno::rollPresets` (über den Hub, `link/GenreMatch.hpp` ist ebenfalls eine Kopie).

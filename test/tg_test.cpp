@@ -42,6 +42,12 @@ int main() {
 		std::vector<const Pattern*> ps = {&p};
 		std::vector<uint8_t> mid = songMidi(ps, song, styles()[s].bpm, 0.6f, true);
 		CHECK(mid.size() > 200, "midi too small");
+		for (int m = 0; m < NUM_SCALES; m++) {
+			Pattern q = p;
+			changeScale(q, m);
+			for (int i = 0; i < 64; i++)
+				if (q.mel[0][i].on) CHECK(inScale(q, q.mel[0][i].pitch[0]) || !inScale(p, p.mel[0][i].pitch[0]), "%s: scale %d", styles()[s].name, m);
+		}
 		for (int t = 0; t < NUM_TRACKS; t++) mutate(p, g, 5, t, 0.5f);
 		generate(p, g, 99, T_LEAD);
 	}

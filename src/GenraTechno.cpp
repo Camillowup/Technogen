@@ -4,6 +4,7 @@
 #include "TechnoUI.hpp"
 #include "GenraTechnoLayout.hpp"
 #include "MidiFolder.hpp"
+#include "link/GenreMatch.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -183,6 +184,7 @@ GenSettings GenraTechno::settings() {
 		g.len[t] = (int) params[LEN_PARAM + t].getValue();
 		g.type[t] = typeSel[t];
 	}
+	g.mode = scaleSel;
 	return g;
 }
 
@@ -792,6 +794,48 @@ void GenraTechno::publishFollow(int64_t frame) {
 	put(genraports::PAD_MOD_OUTPUT, ATMO_OUTPUT + 2);
 	put(genraports::CLOCK_OUTPUT, CLK_OUTPUT);
 	put(genraports::RESET_OUTPUT, RST_OUTPUT);
+	put(genraports::STAB_VOCT_OUTPUT, STAB_OUTPUT + 0);
+	put(genraports::STAB_GATE_OUTPUT, STAB_OUTPUT + 1);
+	put(genraports::STAB_VEL_OUTPUT, STAB_OUTPUT + 2);
+}
+
+int GenraTechno::rollPresets(int t) {
+	// like GENRA's follow::rollFollowerPresets (GENRA repo, src/Follow.cpp), through the link hub: the instruments may
+	// live in the other plugins
+	static const int TO_FOLLOW[NUM_TRACKS] = {follow::T_DRUMS, follow::T_BASS, follow::T_STAB, follow::T_MEL, follow::T_PAD};
+	if (t < 0 || t >= NUM_TRACKS)
+		return 0;
+	int want = TO_FOLLOW[t], n = 0;
+	std::string genre = styles()[style].name;
+	for (int64_t id : APP->engine->getModuleIds()) {
+		Module* m = APP->engine->getModule(id);
+		follow::Host* h = m ? genralink::hub().findHost(m) : nullptr;
+		if (!h || !h->follows || h->fol.genra.to.load() != this || h->fol.track.load() != want || !h->fol.presets.load())
+			continue;
+		int cnt = h->hostPresetCount(), cur = h->hostPresetCurrent();
+		if (cnt <= 1)
+			continue;
+		std::vector<std::string> st((size_t) cnt);
+		for (int i = 0; i < cnt; i++) {
+			char nm[64], sy[96];
+			h->hostPresetInfo(i, nm, sizeof(nm), sy, sizeof(sy));
+			st[i] = sy;
+		}
+		std::vector<int> cand = genrematch::candidates(cnt, [&](int i) { return st[i].c_str(); }, genre, cur);
+		if (cand.empty()) {
+			// no preset for the style: one for its family (e.g. TECHNO, HOUSE, TRANCE), else any other
+			cand = genrematch::candidates(cnt, [&](int i) { return st[i].c_str(); }, std::string(FAMILY_NAMES[styles()[style].family]) + " TECHNO", cur);
+			if (cand.empty())
+				for (int i = 0; i < cnt; i++)
+					if (i != cur)
+						cand.push_back(i);
+		}
+		if (cand.empty())
+			continue;
+		h->hostPresetLoad(cand[random::u32() % cand.size()]);
+		n++;
+	}
+	return n;
 }
 
 json_t* GenraTechno::dataToJson() {
@@ -800,6 +844,7 @@ json_t* GenraTechno::dataToJson() {
 	json_object_set_new(root, "pattern", json_string(string::toBase64((const uint8_t*) &pat, sizeof(Pattern)).c_str()));
 	json_object_set_new(root, "style", json_integer(style));
 	json_object_set_new(root, "key", json_integer(key));
+	json_object_set_new(root, "scale", json_integer(scaleSel));
 	json_object_set_new(root, "build", json_integer(forcedBuild));
 	json_object_set_new(root, "seed", json_integer(songSeed));
 	json_object_set_new(root, "main", json_boolean(mainMode.load()));
@@ -821,6 +866,8 @@ void GenraTechno::dataFromJson(json_t* root) {
 		style = clamp((int) json_integer_value(j), 0, numStyles() - 1);
 	if (json_t* j = json_object_get(root, "key"))
 		key = clamp((int) json_integer_value(j), 0, 11);
+	if (json_t* j = json_object_get(root, "scale"))
+		scaleSel = clamp((int) json_integer_value(j), -1, NUM_SCALES - 1);
 	if (json_t* j = json_object_get(root, "build"))
 		forcedBuild = clamp((int) json_integer_value(j), 0, NUM_BUILDS - 1);
 	if (json_t* j = json_object_get(root, "seed"))
@@ -948,6 +995,19 @@ struct GenraTechnoWidget : ModuleWidget {
 		else
 			generate(p, g, seed, track);
 		gm->post(p, !gm->running.load());
+		// instruments that follow (Presets follow GENRA): a preset for the style
+		for (int t = 0; t < NUM_TRACKS; t++)
+			if ((track < 0 && !gm->lock[t]) || track == t)
+				gm->rollPresets(t);
+	}
+	void setScale(int sel) {
+		if (!gm || sel == gm->scaleSel)
+			return;
+		pushUndo();
+		gm->scaleSel = sel;
+		Pattern p = gm->pat;
+		changeScale(p, gm->effectiveScale(), gm->lock);
+		gm->post(p, true);
 	}
 	void mutateTracks(int mask, float amount) {
 		if (!gm)
@@ -968,6 +1028,7 @@ struct GenraTechnoWidget : ModuleWidget {
 			return;
 		gm->style = s;
 		const Style& st = styles()[s];
+		(void) st;
 		gm->params[GenraTechno::BPM_PARAM].setValue(st.bpm);
 		gm->params[GenraTechno::SWING_PARAM].setValue(st.swing);
 		regenerate(-1);
@@ -1149,15 +1210,28 @@ struct GenraTechnoWidget : ModuleWidget {
 		sty->choose = [=](int i) { setStyle(i); };
 		TField* ky = place<TField>(this, L::F_KEY);
 		ky->prefix = "KEY";
-		ky->value = [=]() {
-			if (!gm)
-				return std::string("A MINOR");
-			return std::string(KEY_NAMES[gm->key]) + " " + SCALES[styles()[gm->style].mode].name;
-		};
+		ky->value = [=]() { return std::string(KEY_NAMES[gm ? gm->key : 9]); };
 		ky->count = []() { return 12; };
 		ky->current = [=]() { return gm ? gm->key : 9; };
 		ky->item = [](int i) { return std::string(KEY_NAMES[i]); };
 		ky->choose = [=](int i) { setKey(i); };
+		TField* sc = place<TField>(this, L::F_SCALE);
+		sc->prefix = "SCALE";
+		sc->col = TRACK_COL[1];
+		sc->value = [=]() {
+			if (!gm)
+				return std::string("AUTO");
+			std::string n = SCALES[gm->effectiveScale()].name;
+			return gm->scaleSel < 0 ? "AUTO · " + n : n;
+		};
+		sc->count = []() { return NUM_SCALES + 1; };
+		sc->current = [=]() { return gm ? gm->scaleSel + 1 : 0; };
+		sc->item = [=](int i) {
+			if (i == 0)
+				return std::string("AUTO (the style's: ") + SCALES[styles()[gm ? gm->style : 2].mode].name + ")";
+			return std::string(SCALES[i - 1].name);
+		};
+		sc->choose = [=](int i) { setScale(i - 1); };
 		TField* bu = place<TField>(this, L::F_BUILD);
 		bu->prefix = "BUILD";
 		bu->col = YEL;
@@ -1284,7 +1358,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		float en = gm ? gm->params[GenraTechno::ENERGY_PARAM].getValue() : 0.6f;
 		float sw = gm ? gm->params[GenraTechno::SWING_PARAM].getValue() : s.swing;
 		std::string info = string::f("%.0f BPM    %s %s    SWING %.0f%%    ENERGY %d/10", bpm, KEY_NAMES[gm ? gm->key : 9],
-		                             SCALES[s.mode].name, sw, (int) std::round(en * 10));
+		                             SCALES[gm ? gm->effectiveScale() : s.mode].name, sw, (int) std::round(en * 10));
 		if (flashT > 0.f)
 			text(vg, f, 10, 33, flash, 9.5f, YEL, NVG_ALIGN_LEFT, 0.8f);
 		else

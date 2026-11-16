@@ -24,6 +24,8 @@ right-click › Connect to …).
   ACID (Acid Techno, Acid House), HARD (Hard Techno, Industrial, Schranz), MELODIC (Melodic Techno, Progressive House),
   HOUSE (Tech House, Deep House, Chicago House), TRANCE (Trance, Progressive Trance, Psytrance), ELECTRO (Electro,
   Breaks). Every style has its own harmony: STATIC (one chord), MODAL (two chords) or PROGRESSION (a chord every bar).
+- **KEY and SCALE**: SCALE is AUTO (the style's) or MINOR, DORIAN, PHRYGIAN, MAJOR, HARM. MINOR, MIXOLYDIAN, LYDIAN; a new
+  scale keeps the rhythm, every note keeps its degree (locked tracks stay).
 - **Five tracks**: DRUMS (8 voices in GENRA's order: kick, snare, clap, rim, closed hat, open hat, tom, perc), BASS,
   STAB (poly 4), LEAD and ATMO (poly 4). Per track: a TYPE (e.g. ACID 303, DUB CHORD, HYPNO LOOP), DENS, a flavour
   knob (GROOVE, ACID, DUB, LOOP, MOVE), LEN (the track's own loop length in 16ths: polymeter), NEW, LOCK and MUTE.
@@ -47,6 +49,9 @@ right-click › Connect to …).
   RISE (0–10 V over a build).
 - **Inputs**: CLK (16ths), RST, RUN, NEW, BUILD, DROP, ENERGY and EVOLVE CV.
 - Right-click: export the pattern or the LIVE song as MIDI (into the MIDI folder of the GENRA plugins).
+- **Follow GENRA**: the instruments of GENRA and GENRA Instruments (2.40.0 or newer) follow GENRA TECHNO without cables
+  (right-click on the instrument › Follow GENRA): Drums, Bass, Melody (= LEAD), Pad (= ATMO) or Stab (GENRA TECHNO).
+  With "Presets follow GENRA" on, NEW and a new style load a preset for the style.
 
 ## GENRA TECHNO GRID
 

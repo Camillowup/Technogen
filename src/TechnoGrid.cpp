@@ -195,7 +195,7 @@ struct GridView : widget::OpaqueWidget {
 		text(vg, f, 8 + text(vg, f, -1000, -1000, head, 13.f, col, NVG_ALIGN_LEFT, 1.f) + 10, 11, info, 9.f, DIM);
 		static const char* const VM[3] = {"ALL", "SCALE", "USED"};
 		std::string r = string::f("%s · BARS %d–%d · %s %s · LEN %d%s", VM[mod->viewMode], first / 16 + 1, (first + steps) / 16,
-		                          KEY_NAMES[p.key % 12], SCALES[p.mode % 5].name, p.trackLen(t), mod->rec ? " · REC" : "");
+		                          KEY_NAMES[p.key % 12], SCALES[p.mode % NUM_SCALES].name, p.trackLen(t), mod->rec ? " · REC" : "");
 		text(vg, f, box.size.x - 8, 11, r, 8.5f, mod->rec ? RED : DIM, NVG_ALIGN_RIGHT, 0.6f);
 		float rh = rowH();
 		// rows

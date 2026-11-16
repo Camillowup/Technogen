@@ -106,7 +106,10 @@ struct Scale {
 	int n;
 	int iv[7];
 };
-extern const Scale SCALES[5];
+enum { NUM_SCALES = 7 };
+extern const Scale SCALES[NUM_SCALES];
+/** A pattern's notes and chords into another scale: every note keeps its scale degree (rhythm and key stay). */
+void changeScale(Pattern& p, int mode, const bool* keepTrack = nullptr);
 extern const char* const KEY_NAMES[12];
 
 // ------------------------------------------------------------------ generating
@@ -118,6 +121,7 @@ struct GenSettings {
 	float flavour[NUM_TRACKS] = {0.5f, 0.5f, 0.5f, 0.5f, 0.5f}; // GROOVE, ACID, DUB, LOOP, MOVE knobs
 	int len[NUM_TRACKS] = {0, 0, 0, 0, 0};                         // loop length in 16ths, 0: the generator's
 	int type[NUM_TRACKS] = {-1, -1, -1, -1, -1};                  // per-track type override (-1: style's)
+	int mode = -1;                                               // scale (SCALES), -1: the style's
 };
 /** A whole new pattern (track -1) or one track (the others stay). */
 void generate(Pattern& p, const GenSettings& s, uint32_t seed, int track = -1);
@@ -129,7 +133,7 @@ const char* typeName(int track, int i);
 /** The type the style uses for a track (index into typeName). */
 int styleType(int style, int track);
 /** The pattern's chords and scale again (after the key or style changed). */
-void makeChords(Pattern& p, int style, int key, uint32_t seed);
+void makeChords(Pattern& p, int style, int key, uint32_t seed, int mode = -1);
 std::string chordName(const Pattern& p, int bar);
 bool inScale(const Pattern& p, int midi);
 

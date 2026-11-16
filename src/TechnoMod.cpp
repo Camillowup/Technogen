@@ -508,7 +508,7 @@ struct TechnoModWidget : ModuleWidget {
 		if (g) {
 			text(vg, f, 92, 12,
 			     string::f("BAR %d / %d  ·  %.0f BPM  ·  %s %s", g->pubSecBar.load() + 1, g->pubSecBars.load(), g->bpm(),
-			               KEY_NAMES[g->key], SCALES[styles()[g->style].mode].name),
+			               KEY_NAMES[g->key], SCALES[g->effectiveScale()].name),
 			     7.5f, DIM, NVG_ALIGN_LEFT, 0.5f);
 			int np = g->pubNextPart.load();
 			std::string nx = std::string("NEXT: ") + PART_NAMES[np % 6];

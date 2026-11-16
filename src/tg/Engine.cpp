@@ -16,11 +16,10 @@ const char* const BUILD_NAMES[NUM_BUILDS] = {"AUTO",  "SNARE ROLL", "KICK",  "HA
                                              "STRIP", "POLY",       "CUT",   "NONE",     "FAKE"};
 const char* const PART_NAMES[NUM_PARTS] = {"INTRO", "GROOVE", "BUILD", "DROP", "BREAK", "OUTRO"};
 const char* const KEY_NAMES[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-const Scale SCALES[5] = {{"MINOR", 7, {0, 2, 3, 5, 7, 8, 10}},
-                         {"DORIAN", 7, {0, 2, 3, 5, 7, 9, 10}},
-                         {"PHRYGIAN", 7, {0, 1, 3, 5, 7, 8, 10}},
-                         {"MAJOR", 7, {0, 2, 4, 5, 7, 9, 11}},
-                         {"HARM. MINOR", 7, {0, 2, 3, 5, 7, 8, 11}}};
+const Scale SCALES[NUM_SCALES] = {{"MINOR", 7, {0, 2, 3, 5, 7, 8, 10}},     {"DORIAN", 7, {0, 2, 3, 5, 7, 9, 10}},
+                                  {"PHRYGIAN", 7, {0, 1, 3, 5, 7, 8, 10}},  {"MAJOR", 7, {0, 2, 4, 5, 7, 9, 11}},
+                                  {"HARM. MINOR", 7, {0, 2, 3, 5, 7, 8, 11}}, {"MIXOLYDIAN", 7, {0, 2, 4, 5, 7, 9, 10}},
+                                  {"LYDIAN", 7, {0, 2, 4, 6, 7, 9, 11}}};
 const uint8_t GM_DRUM[DRUMS] = {36, 38, 39, 37, 42, 46, 45, 56};
 
 uint32_t hash(uint32_t a, uint32_t b, uint32_t c) {
@@ -131,13 +130,13 @@ static int typeOf(const GenSettings& g, int t) { return g.type[t] >= 0 ? g.type[
 
 // ------------------------------------------------------------------ harmony
 static int scaleNote(int mode, int key, int degree, int baseOct) {
-	const Scale& sc = SCALES[mode];
+	const Scale& sc = SCALES[mode % NUM_SCALES];
 	int oct = degree >= 0 ? degree / sc.n : -((-degree + sc.n - 1) / sc.n);
 	int d = degree - oct * sc.n;
 	return baseOct * 12 + key + sc.iv[d] + 12 * oct;
 }
 bool inScale(const Pattern& p, int midi) {
-	const Scale& sc = SCALES[p.mode % 5];
+	const Scale& sc = SCALES[p.mode % NUM_SCALES];
 	int pc = ((midi - p.key) % 12 + 12) % 12;
 	for (int i = 0; i < sc.n; i++)
 		if (sc.iv[i] == pc)
@@ -148,12 +147,12 @@ bool inScale(const Pattern& p, int midi) {
 static const int PROGS[][4] = {{0, 5, 2, 6}, {0, 3, 5, 4}, {0, 6, 5, 6}, {0, 4, 5, 3}, {5, 6, 0, 0}, {0, 6, 5, 4}};
 static const int MODALS[][4] = {{0, 0, 6, 6}, {0, 0, 3, 3}, {0, 0, 5, 5}, {0, 3, 0, 3}};
 
-void makeChords(Pattern& p, int style, int key, uint32_t seed) {
+void makeChords(Pattern& p, int style, int key, uint32_t seed, int mode) {
 	const Style& s = st(style);
 	Rng r(hash(seed, 77));
 	p.style = (uint8_t) style;
 	p.key = (uint8_t) (key % 12);
-	p.mode = (uint8_t) s.mode;
+	p.mode = (uint8_t) (mode >= 0 ? mode % NUM_SCALES : s.mode);
 	const int* deg;
 	static const int none[4] = {0, 0, 0, 0};
 	if (s.harmony == H_PROG)
@@ -166,7 +165,7 @@ void makeChords(Pattern& p, int style, int key, uint32_t seed) {
 		int d = deg[b];
 		{
 			// no diminished chords: the degree next to it instead
-			const Scale& sc = SCALES[p.mode % 5];
+			const Scale& sc = SCALES[p.mode % NUM_SCALES];
 			int third = (sc.iv[(d + 2) % 7] - sc.iv[d % 7] + 12) % 12;
 			int fifth = (sc.iv[(d + 4) % 7] - sc.iv[d % 7] + 12) % 12;
 			if (third == 3 && fifth == 6)
@@ -195,9 +194,45 @@ void makeChords(Pattern& p, int style, int key, uint32_t seed) {
 	}
 }
 
+void changeScale(Pattern& p, int mode, const bool* keepTrack) {
+	mode = ((mode % NUM_SCALES) + NUM_SCALES) % NUM_SCALES;
+	const Scale& a = SCALES[p.mode % NUM_SCALES];
+	const Scale& b = SCALES[mode];
+	auto conv = [&](int pitch) {
+		// the nearest degree of the old scale, the same degree in the new one
+		int rel = pitch - p.key;
+		int oct = rel >= 0 ? rel / 12 : -((-rel + 11) / 12);
+		int pc = rel - oct * 12, best = 0, bd = 99;
+		for (int d = 0; d < 7; d++) {
+			int dd = std::abs(a.iv[d] - pc);
+			if (dd < bd) {
+				bd = dd;
+				best = d;
+			}
+		}
+		int off = pc - a.iv[best]; // a note outside the old scale keeps its distance
+		return std::max(0, std::min(127, p.key + oct * 12 + b.iv[best] + off));
+	};
+	for (int t = 0; t < MELS; t++) {
+		if (keepTrack && keepTrack[t + 1])
+			continue;
+		for (int i = 0; i < STEPS; i++) {
+			Note& n = p.mel[t][i];
+			if (!n.on)
+				continue;
+			for (int v = 0; v < n.n && v < VOICES; v++)
+				n.pitch[v] = (int8_t) conv(n.pitch[v]);
+		}
+	}
+	for (int bar = 0; bar < 4; bar++)
+		for (int v = 0; v < p.chordN[bar] && v < VOICES; v++)
+			p.chord[bar][v] = (int8_t) conv(p.chord[bar][v]);
+	p.mode = (uint8_t) mode;
+}
+
 std::string chordName(const Pattern& p, int bar) {
 	bar = std::max(0, std::min(3, bar));
-	const Scale& sc = SCALES[p.mode % 5];
+	const Scale& sc = SCALES[p.mode % NUM_SCALES];
 	int d = p.chordDeg[bar];
 	int root = (p.key + sc.iv[d % 7]) % 12;
 	int third = (sc.iv[(d + 2) % 7] - sc.iv[d % 7] + 12) % 12;
@@ -213,7 +248,7 @@ std::string chordName(const Pattern& p, int bar) {
 }
 
 static int chordRootPc(const Pattern& p, int bar) {
-	const Scale& sc = SCALES[p.mode % 5];
+	const Scale& sc = SCALES[p.mode % NUM_SCALES];
 	return (p.key + sc.iv[p.chordDeg[bar & 3] % 7]) % 12;
 }
 static int bassPitch(const Pattern& p, int bar, int interval = 0) {
@@ -437,7 +472,7 @@ static void genBass(Pattern& p, const GenSettings& g, Rng& r) {
 	int type = typeOf(g, T_BASS);
 	float dens = g.dens[T_BASS], fl = g.flavour[T_BASS];
 	p.len[T_BASS] = 64;
-	const Scale& sc = SCALES[p.mode % 5];
+	const Scale& sc = SCALES[p.mode % NUM_SCALES];
 	int fifth = 7, oct = 12, b7 = sc.iv[6], m3 = sc.iv[2];
 	if (type == B_ACID) {
 		// a 303 line: one bar, repeated, bar 4 varied
@@ -783,10 +818,10 @@ void generate(Pattern& p, const GenSettings& g, uint32_t seed, int track) {
 	if (track < 0) {
 		p = Pattern();
 		p.seed = seed;
-		makeChords(p, g.style, g.key, seed);
+		makeChords(p, g.style, g.key, seed, g.mode);
 	}
-	else if (p.style != g.style || p.key != g.key)
-		makeChords(p, g.style, g.key, p.seed);
+	else if (p.style != g.style || p.key != g.key || (g.mode >= 0 && p.mode != g.mode))
+		makeChords(p, g.style, g.key, p.seed, g.mode);
 	if (track < 0 || track == T_DRUMS)
 		bestOf(p, g, seed, 1, 8, genDrums, scoreDrums);
 	if (track < 0 || track == T_BASS)
