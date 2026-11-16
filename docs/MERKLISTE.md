@@ -1,8 +1,9 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 16. Nov. 2026, nach Build 2.0.0 (dev, kein Release).
+Stand 16. Nov. 2026, nach Build 2.0.1 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.1: MAIN-Loop beim Start, LIVE SONG, Klick in die Zeitleiste (Sprung am Taktende), < PART / PART >, kürzeres Intro.
 - Hauptmodul allein: PLAY, LIVE-Song läuft durch (Intro bis Outro), Builds hörbar verschieden, PERFORM, FILL, MUTE/LOCK.
 - GRID: Noten setzen/löschen/ziehen, END-Marke, Lanes, UNDO/REDO, REC über MIDI.
 - ABLAUF: Pad speichern, Varianten, MAKE SONG, SONG + PLAY, LOOP, Export.

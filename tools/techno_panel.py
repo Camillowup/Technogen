@@ -16,6 +16,11 @@ P.knob("K_LENGTH", 216, 9.2, "medium", None, "LENGTH")
 
 # ---- display and the choices under it
 P.display("DISP_MAIN", 5, 21.5, 150, 25.5)
+# keys in the display: a part back / on, MAIN (the drop in a loop) or the song
+P.button("BTN_PREV", 80, 23.7, 12.5, 5.5, "< PART", "#2c2e36", TXT, 1.25)
+P.button("BTN_NEXT", 93.5, 23.7, 12.5, 5.5, "PART >", "#2c2e36", TXT, 1.25)
+P.button("BTN_MAIN", 108, 23.7, 13, 5.5, "MAIN", RED, "#ffffff", 1.35)
+P.button("BTN_SONGMODE", 122, 23.7, 15, 5.5, "LIVE SONG", "#2c2e36", DIM, 1.15)
 P.field("F_FAMILY", 5, 50, 36, 5.6, "FAMILY  BERLIN")
 P.field("F_STYLE", 43, 50, 44, 5.6, "STYLE  HYPNOTIC")
 P.field("F_KEY", 89, 50, 30, 5.6, "KEY  A")

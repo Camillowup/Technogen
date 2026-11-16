@@ -107,6 +107,10 @@ struct GenraTechno : Module {
 	std::atomic<bool> fillReq{false};
 	std::atomic<int> performHold{-1}; // the part button held down
 	std::atomic<bool> nextRowReq{false};
+	std::atomic<bool> mainMode{true}; // MAIN: the drop in a loop (the theme); else the song
+	std::atomic<bool> mainReq{false}; // go into MAIN at the next bar
+	std::atomic<int> jumpBar{-1};     // jump to this bar of the song at the next bar
+	bool liveDj = false;              // LIVE song: DJ intro and outro (32 bars, drums only)
 
 	// ---------------------------------------------------------------- audio → UI (requests and what the displays show)
 	std::atomic<int> newReq{0};    // bit t: a new track t (bit 5: all), from the NEW input
@@ -116,7 +120,8 @@ struct GenraTechno : Module {
 	    pubBuild{tg::BT_NONE}, pubDropIdx{0}, pubGrow{0}, pubSongBar{0}, pubRow{-1}, pubChordCount{0};
 	std::atomic<int64_t> pubBarCount{0}, pubSongStep{0};
 	std::atomic<float> pubSecPos{0.f}, pubRise{0.f};
-	std::atomic<bool> pubSongMode{false};
+	std::atomic<bool> pubSongMode{false}, pubMain{false};
+	std::atomic<int> pubMainIdx{0};
 	std::atomic<int> pubStepInBar{0};
 
 	// the displays' copy of the song (UI thread only)
@@ -154,7 +159,8 @@ struct GenraTechno : Module {
 		int ratLeft = 0;
 		float ratInterval = 0.f, ratCounter = 0.f, ratGate = 0.f;
 	} mels[4];
-	bool fillBar = false, wasSong = false;
+	bool fillBar = false, wasSong = false, inMain = false;
+	int mainIdx = 0;
 
 	// FOLLOW: GENRA's output layout for the instruments of the GENRA plugins (link hub)
 	enum { FOLLOW_OUTS = genraports::RESET_OUTPUT + 1 };
@@ -172,6 +178,8 @@ struct GenraTechno : Module {
 	int planN() { return plans[planCur.load()].n; }
 	void startSong(int fromRow);
 	void enterSection(const tg::Section& s);
+	void enterMain();
+	void jumpTo(int bar);
 	void advanceSection();
 	void tick(float sr);
 	void fireStep(float sr);

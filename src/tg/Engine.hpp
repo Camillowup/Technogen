@@ -144,8 +144,10 @@ struct Section {
 	uint8_t dropIdx = 0;     // DROP n (0 first)
 	uint8_t pad = 0;         // ABLAUF: the pad it plays
 };
-/** A song for a style: minutes long (at bpm), with the builds the style likes (forced: one build type for all). */
-std::vector<Section> planSong(int style, float minutes, float bpm, uint32_t seed, int forcedBuild = B_AUTO, bool grow = true);
+/** A song for a style: minutes long (at bpm), with the builds the style likes (forced: one build type for all).
+ * djIntro: a 32-bar intro (else 16). */
+std::vector<Section> planSong(int style, float minutes, float bpm, uint32_t seed, int forcedBuild = B_AUTO, bool grow = true,
+                              bool djIntro = false);
 int songBars(const std::vector<Section>& s);
 /** Choose the build type for a section of a style (avoid: the one before). */
 int pickBuild(int style, uint32_t seed, int avoid, int grow);

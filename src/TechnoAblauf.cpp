@@ -339,7 +339,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 			storeCurrent(freePad());
 		const Form& f = FORMS[mod->form];
 		mod->dj = f.dj;
-		std::vector<Section> plan = planSong(g->style, f.minutes, g->bpm(), random::u32(), g->forcedBuild, true);
+		std::vector<Section> plan = planSong(g->style, f.minutes, g->bpm(), random::u32(), g->forcedBuild, true, f.dj);
 		int base = -1;
 		for (int i = 0; i < 64 && base < 0; i++)
 			if (mod->pads[i].used && mod->pads[i].part < 0)

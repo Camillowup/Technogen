@@ -874,7 +874,7 @@ int pickBuild(int style, uint32_t seed, int avoid, int grow) {
 	return s.builds[0] == avoid ? s.builds[1] : s.builds[0];
 }
 
-std::vector<Section> planSong(int style, float minutes, float bpm, uint32_t seed, int forcedBuild, bool grow) {
+std::vector<Section> planSong(int style, float minutes, float bpm, uint32_t seed, int forcedBuild, bool grow, bool djIntro) {
 	const Style& s = st(style);
 	Rng r(hash(seed, 4242));
 	struct T {
@@ -905,6 +905,11 @@ std::vector<Section> planSong(int style, float minutes, float bpm, uint32_t seed
 				break;
 			}
 	}
+	// a short intro unless a DJ intro is wanted (the time goes to the grooves and drops)
+	if (!djIntro)
+		for (T& t : tpl)
+			if (t.part == P_INTRO)
+				t.bars = 16;
 	int want = std::max(64, (int) std::round(minutes * bpm / 4.f / 8.f) * 8);
 	int have = 0;
 	for (const T& t : tpl)
@@ -1028,7 +1033,7 @@ bool elementIn(int style, const Ctx& c, int track, int voice) {
 			return true;
 		// one element more every 8 bars (after a drop: all of them)
 		static const int melOrder[4] = {E_BASS, E_STAB, E_LEAD, E_ATMO};
-		int n = c.dropIdx > 0 ? 4 : 1 + phrase;
+		int n = c.dropIdx > 0 ? 4 : 2 + phrase * 2; // bass and stab at once, all of them from the second phrase
 		if (s.family == F_BERLIN || s.family == F_HARD)
 			n = std::max(n, 2);
 		return rankIn(melOrder, 4) < n;

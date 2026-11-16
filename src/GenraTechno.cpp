@@ -194,7 +194,7 @@ void GenraTechno::post(const Pattern& p, bool now) {
 
 void GenraTechno::rebuildPlan() {
 	std::vector<Section> s = planSong(style, params[LENGTH_PARAM].getValue(), params[BPM_PARAM].getValue(), songSeed,
-	                                  forcedBuild, true);
+	                                  forcedBuild, true, liveDj);
 	int next = 1 - planCur.load();
 	Plan& p = plans[next];
 	p.n = (int) std::min<size_t>(s.size(), 96);
@@ -250,11 +250,103 @@ void GenraTechno::startSong(int fromRow) {
 		enterSection(p.n ? p.s[0] : Section());
 	}
 	wasSong = sc != nullptr;
+	if (mainMode.load())
+		enterMain();
 	songStep = -1; // tick() adds one
 	rstPulse.trigger(1e-3f);
 }
 
+void GenraTechno::enterMain() {
+	// MAIN: the first drop of the song, 8 bars, again and again
+	SongScript* sc = script.load();
+	Section s;
+	s.part = P_DROP;
+	int idx = 0;
+	if (sc && !sc->rows.empty()) {
+		for (int i = (int) sc->rows.size() - 1; i >= 0; i--)
+			if (sc->rows[i].part == P_DROP)
+				idx = i;
+		s = sc->rows[idx];
+		row = idx;
+		if (s.pad < sc->pads.size())
+			pat = sc->pads[s.pad];
+	}
+	else {
+		Plan& p = plans[planCur.load()];
+		for (int i = p.n - 1; i >= 0; i--)
+			if (p.s[i].part == P_DROP)
+				idx = i;
+		if (p.n)
+			s = p.s[idx];
+		planIdx = idx;
+		inOv = false;
+	}
+	s.part = P_DROP;
+	s.bars = 8;
+	s.grow = 0;
+	s.dropIdx = 0;
+	mainIdx = idx;
+	dropsSoFar = buildsSoFar = 0;
+	enterSection(s);
+	inMain = true;
+}
+
+void GenraTechno::jumpTo(int bar) {
+	inMain = false;
+	SongScript* sc = script.load();
+	auto place = [&](const Section* secs, int n, int* idxOut) -> int {
+		int total = 0;
+		for (int i = 0; i < n; i++)
+			total += secs[i].bars;
+		int b = total > 0 ? bar % total : 0;
+		int start = 0, r = 0;
+		for (; r < n; r++) {
+			if (b < start + secs[r].bars)
+				break;
+			start += secs[r].bars;
+		}
+		if (r >= n) {
+			r = n - 1;
+			start = total - secs[r].bars;
+		}
+		dropsSoFar = buildsSoFar = 0;
+		for (int i = 0; i < r; i++) {
+			dropsSoFar += secs[i].part == P_DROP;
+			buildsSoFar += secs[i].part == P_BUILD;
+		}
+		*idxOut = r;
+		return b - start;
+	};
+	if (sc && !sc->rows.empty()) {
+		int r = 0;
+		int off = place(sc->rows.data(), (int) sc->rows.size(), &r);
+		row = r;
+		const Section& s = sc->rows[r];
+		if (s.pad < sc->pads.size())
+			pat = sc->pads[s.pad];
+		enterSection(s);
+		secBar = clamp(off, 0, std::max(0, (int) s.bars - 1));
+	}
+	else {
+		Plan& p = plans[planCur.load()];
+		if (!p.n)
+			return;
+		int r = 0;
+		int off = place(p.s, p.n, &r);
+		planIdx = r;
+		inOv = false;
+		enterSection(p.s[r]);
+		secBar = clamp(off, 0, std::max(0, (int) p.s[r].bars - 1));
+	}
+	wasSong = sc != nullptr;
+}
+
 void GenraTechno::advanceSection() {
+	if (mainMode.load()) {
+		enterMain();
+		return;
+	}
+	inMain = false;
 	SongScript* sc = script.load();
 	if (sc && !wasSong)
 		row = -1; // ABLAUF's song came in while LIVE played: from its first row
@@ -306,7 +398,14 @@ void GenraTechno::tick(float sr) {
 	songStep++;
 	int sib = (int) (((songStep % 16) + 16) % 16);
 	if (sib == 0) {
-		if (songStep > 0) {
+		int jb = jumpBar.exchange(-1);
+		if (jb >= 0) {
+			mainMode = false;
+			jumpTo(jb);
+		}
+		else if (mainReq.exchange(false) && mainMode.load())
+			enterMain();
+		else if (songStep > 0) {
 			secBar++;
 			// a part button held: the part goes on (8 bars more)
 			if (secBar >= cur.bars && performHold.load() == cur.part && cur.bars <= 240)
@@ -317,6 +416,10 @@ void GenraTechno::tick(float sr) {
 		// PERFORM at the start of a phrase
 		if (secBar % 8 == 0 && performReq.load() >= 0) {
 			int req = performReq.exchange(-1);
+			if (inMain) { // PERFORM leaves MAIN: the song goes on from the drop
+				mainMode = false;
+				inMain = false;
+			}
 			SongScript* sc = script.load();
 			if (sc && !sc->rows.empty()) {
 				int n = (int) sc->rows.size();
@@ -401,7 +504,7 @@ void GenraTechno::tick(float sr) {
 	else {
 		pubRow = -1;
 		Plan& p = plans[planCur.load()];
-		pubSecIdx = inOv ? planIdx : planIdx;
+		pubSecIdx = inOv ? planIdx - 1 : planIdx;
 		if (inOv && ovI + 1 < ovN)
 			pubNextPart = ov[ovI + 1].part;
 		else
@@ -418,6 +521,12 @@ void GenraTechno::tick(float sr) {
 			bar += p.s[i].bars;
 	}
 	pubSongBar = bar + secBar;
+	pubMain = inMain;
+	pubMainIdx = mainIdx;
+	if (inMain) {
+		pubSecIdx = mainIdx;
+		pubNextPart = P_DROP;
+	}
 }
 
 void GenraTechno::fireStep(float sr) {
@@ -430,7 +539,7 @@ void GenraTechno::fireStep(float sr) {
 	c.dropIdx = cur.dropIdx;
 	c.nextPart = pubNextPart.load();
 	SongScript* sc = script.load();
-	c.djEdges = sc ? sc->djEdges : true;
+	c.djEdges = sc ? sc->djEdges : liveDj;
 	int sib = (int) (songStep % 16);
 	if (fillReq.exchange(false))
 		fillBar = true;
@@ -693,6 +802,8 @@ json_t* GenraTechno::dataToJson() {
 	json_object_set_new(root, "key", json_integer(key));
 	json_object_set_new(root, "build", json_integer(forcedBuild));
 	json_object_set_new(root, "seed", json_integer(songSeed));
+	json_object_set_new(root, "main", json_boolean(mainMode.load()));
+	json_object_set_new(root, "liveDj", json_boolean(liveDj));
 	json_t* tr = json_array();
 	for (int t = 0; t < NUM_TRACKS; t++) {
 		json_t* o = json_object();
@@ -714,6 +825,8 @@ void GenraTechno::dataFromJson(json_t* root) {
 		forcedBuild = clamp((int) json_integer_value(j), 0, NUM_BUILDS - 1);
 	if (json_t* j = json_object_get(root, "seed"))
 		songSeed = (uint32_t) json_integer_value(j);
+	mainMode = !json_is_false(json_object_get(root, "main"));
+	liveDj = json_is_true(json_object_get(root, "liveDj"));
 	if (json_t* tr = json_object_get(root, "tracks"))
 		for (int t = 0; t < NUM_TRACKS && t < (int) json_array_size(tr); t++) {
 			json_t* o = json_array_get(tr, t);
@@ -744,6 +857,67 @@ struct GenraTechnoWidget : ModuleWidget {
 	float flashT = 0.f;
 	float lastParam[GenraTechno::NUM_PARAMS] = {};
 	bool paramsSeen = false;
+
+	Rect dispBox;
+	Vec hover = Vec(-1, -1);
+	// the timeline in the display (px, relative to the display)
+	float tlX0() { return 10.f; }
+	float tlX1() { return dispBox.size.x - 52.f; }
+	bool inBand(Vec p) { return p.y > 38.f && p.y < 60.f && p.x >= tlX0() && p.x <= tlX1(); }
+	std::vector<Section> sections() {
+		std::vector<Section> s;
+		if (gm) {
+			std::lock_guard<std::mutex> lk(gm->viewMx);
+			s = gm->view.sections;
+		}
+		return s;
+	}
+	/** The section under x and the bar a click there jumps to (start of the 8-bar phrase). */
+	int barAt(float x, int* secOut) {
+		std::vector<Section> s = sections();
+		int total = songBars(s);
+		if (total <= 0)
+			return -1;
+		float f = clamp((x - tlX0()) / (tlX1() - tlX0()), 0.f, 0.9999f);
+		int bar = (int) (f * total), start = 0;
+		for (size_t i = 0; i < s.size(); i++) {
+			if (bar < start + s[i].bars) {
+				if (secOut)
+					*secOut = (int) i;
+				return start + ((bar - start) / 8) * 8;
+			}
+			start += s[i].bars;
+		}
+		return 0;
+	}
+	void jumpAt(float x) {
+		if (!gm)
+			return;
+		int b = barAt(x, nullptr);
+		if (b < 0)
+			return;
+		gm->jumpBar = b;
+		if (!gm->running.load())
+			gm->runReq = true;
+	}
+	void partStep(int d) {
+		if (!gm)
+			return;
+		std::vector<Section> s = sections();
+		if (s.empty())
+			return;
+		bool run = gm->running.load();
+		int cur = gm->pubMain.load() ? gm->pubMainIdx.load() : (run ? gm->pubSecIdx.load() : 0);
+		if (!run && d > 0 && !gm->mainMode.load())
+			cur = -1;
+		int t = clamp(cur + d, 0, (int) s.size() - 1);
+		int start = 0;
+		for (int i = 0; i < t; i++)
+			start += s[i].bars;
+		gm->jumpBar = start;
+		if (!run)
+			gm->runReq = true;
+	}
 
 	void pushUndo() {
 		if (!gm)
@@ -915,6 +1089,9 @@ struct GenraTechnoWidget : ModuleWidget {
 				gm->songSeed = random::u32();
 				regenerate(-1);
 				gm->rebuildPlan();
+				gm->mainMode = true; // a new theme: hear it in MAIN first
+				if (gm->running.load())
+					gm->mainReq = true;
 			}
 		};
 		TButton* mu = place<TButton>(this, L::BTN_MUTATE);
@@ -1040,9 +1217,60 @@ struct GenraTechnoWidget : ModuleWidget {
 					gm->mute[t] = !gm->mute[t];
 			};
 		}
-		// the display
+		// the display, the timeline in it (click: jump there at the end of the bar) and its keys
 		Drawn* d = place<Drawn>(this, L::DISP_MAIN);
 		d->paintLit = [=](const DrawArgs& a) { drawDisplay(a.vg, d->box.size); };
+		dispBox = d->box;
+		struct Timeline : widget::OpaqueWidget {
+			GenraTechnoWidget* w = nullptr;
+			void onButton(const ButtonEvent& e) override {
+				if (e.action == GLFW_PRESS && e.button == GLFW_MOUSE_BUTTON_LEFT && w->inBand(e.pos)) {
+					w->jumpAt(e.pos.x);
+					e.consume(this);
+				}
+			}
+			void onHover(const HoverEvent& e) override {
+				w->hover = e.pos;
+				OpaqueWidget::onHover(e);
+			}
+			void onLeave(const LeaveEvent& e) override { w->hover = Vec(-1, -1); }
+		};
+		Timeline* tl = new Timeline;
+		tl->w = this;
+		tl->box = d->box;
+		addChild(tl);
+		TButton* pv = place<TButton>(this, L::BTN_PREV);
+		pv->label = "< PART";
+		pv->fontSize = 7.5f;
+		pv->act = [=]() { partStep(-1); };
+		TButton* nx = place<TButton>(this, L::BTN_NEXT);
+		nx->label = "PART >";
+		nx->fontSize = 7.5f;
+		nx->act = [=]() { partStep(1); };
+		TButton* mn = place<TButton>(this, L::BTN_MAIN);
+		mn->label = "MAIN";
+		mn->fontSize = 8.f;
+		mn->colOf = [=]() { return gm && gm->mainMode.load() ? RED : BTN; };
+		mn->textCol = WHITE;
+		mn->act = [=]() {
+			if (!gm)
+				return;
+			gm->mainMode = true;
+			if (gm->running.load())
+				gm->mainReq = true;
+		};
+		TButton* sg = place<TButton>(this, L::BTN_SONGMODE);
+		sg->labelOf = [=]() { return std::string(gm && gm->pubSongMode.load() ? "ABLAUF SONG" : "LIVE SONG"); };
+		sg->fontSize = 7.f;
+		sg->colOf = [=]() { return gm && !gm->mainMode.load() ? dark(PART_COL[1], 0.9f) : BTN; };
+		sg->act = [=]() {
+			if (!gm || !gm->mainMode.load())
+				return;
+			gm->mainMode = false;
+			gm->jumpBar = 0;
+			if (!gm->running.load())
+				gm->runReq = true;
+		};
 	}
 
 	void drawDisplay(NVGcontext* vg, Vec sz) {
@@ -1051,7 +1279,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		float W = sz.x, H = sz.y;
 		int st = gm ? gm->style : 2;
 		const Style& s = styles()[st];
-		text(vg, f, 10, 17, std::string(FAMILY_NAMES[s.family]) + "  ›  " + s.name, 15.f, TXT, NVG_ALIGN_LEFT, 1.f);
+		textFit(vg, f, 10, 17, std::string(FAMILY_NAMES[s.family]) + "  ›  " + s.name, 15.f, mm2px(63.f), TXT, NVG_ALIGN_LEFT, 1.f);
 		float bpm = gm ? gm->bpm() : s.bpm;
 		float en = gm ? gm->params[GenraTechno::ENERGY_PARAM].getValue() : 0.6f;
 		float sw = gm ? gm->params[GenraTechno::SWING_PARAM].getValue() : s.swing;
@@ -1061,10 +1289,6 @@ struct GenraTechnoWidget : ModuleWidget {
 			text(vg, f, 10, 33, flash, 9.5f, YEL, NVG_ALIGN_LEFT, 0.8f);
 		else
 			text(vg, f, 10, 33, info, 8.5f, DIM, NVG_ALIGN_LEFT, 0.8f);
-		// LIVE / SONG
-		bool songMode = gm && gm->pubSongMode.load();
-		roundRect(vg, W - 120, 9, 62, 15, 2.f, songMode ? dark(PART_COL[1], 0.8f) : dark(RED, 0.7f));
-		text(vg, f, W - 89, 16.5f, songMode ? "SONG" : "LIVE", 9.f, WHITE, NVG_ALIGN_CENTER, 1.5f);
 		// energy meter
 		for (int i = 0; i < 10; i++) {
 			NVGcolor c = i >= 7 ? RED : (i >= 4 ? YEL : TRACK_COL[1]);
@@ -1082,13 +1306,34 @@ struct GenraTechnoWidget : ModuleWidget {
 		int total = std::max(1, songBars(secs));
 		float x = x0;
 		int curIdx = gm ? gm->pubSecIdx.load() : 0;
+		bool inMain = gm && gm->running.load() ? gm->pubMain.load() : (gm && gm->mainMode.load());
+		int mainIdx = 0;
+		for (int i = (int) secs.size() - 1; i >= 0; i--)
+			if (secs[i].part == P_DROP)
+				mainIdx = i;
+		if (inMain)
+			curIdx = mainIdx;
+		int hoverSec = -1;
+		if (hover.x >= 0 && inBand(hover))
+			barAt(hover.x, &hoverSec);
 		for (size_t i = 0; i < secs.size(); i++) {
 			float w = (x1 - x0) * secs[i].bars / total;
-			bool now = (int) i == curIdx && gm && gm->running.load();
+			bool now = (int) i == curIdx && gm && (gm->running.load() || inMain);
 			NVGcolor c = PART_COL[secs[i].part % 6];
-			roundRect(vg, x + 0.5f, y, std::max(1.f, w - 1.f), h, 1.2f, now ? c : dark(c, 0.5f));
+			roundRect(vg, x + 0.5f, y, std::max(1.f, w - 1.f), h, 1.2f, now ? c : dark(c, inMain ? 0.3f : 0.5f));
+			if ((int) i == hoverSec)
+				frame(vg, x + 0.5f, y, std::max(1.f, w - 1.f), h, 1.2f, WHITE, 1.2f);
 			if (w > 26)
-				textFit(vg, f, x + w / 2, y + h / 2 + 0.5f, PART_NAMES[secs[i].part % 6], 7.f, w - 4, now ? BG : TXT, NVG_ALIGN_CENTER, 0.6f);
+				textFit(vg, f, x + w / 2, y + h / 2 + 0.5f, PART_NAMES[secs[i].part % 6], 7.f, w - 4, now ? BG : (inMain ? DIM : TXT),
+				        NVG_ALIGN_CENTER, 0.6f);
+			if (inMain && (int) i == mainIdx)
+				text(vg, f, x + w / 2, y - 6, "LOOP 8 BARS · ALL TRACKS", 6.5f, WHITE, NVG_ALIGN_CENTER, 0.5f);
+			if ((int) i == hoverSec && !(inMain && (int) i == mainIdx)) {
+				std::string lab = std::string("JUMP › ") + PART_NAMES[secs[i].part % 6];
+				float tw = 70.f;
+				roundRect(vg, x + w / 2 - tw / 2, y - 13, tw, 10, 1.5f, BTN);
+				text(vg, f, x + w / 2, y - 8, lab, 6.5f, WHITE, NVG_ALIGN_CENTER, 0.5f);
+			}
 			x += w;
 		}
 		if (gm && gm->running.load()) {
@@ -1099,7 +1344,10 @@ struct GenraTechnoWidget : ModuleWidget {
 		// bottom line
 		int part = gm ? gm->pubPart.load() : 0;
 		std::string bl;
-		if (gm) {
+		if (gm && inMain) {
+			bl = string::f("MAIN: THE DROP IN A LOOP (THE THEME)    BAR %d / 8", gm->running.load() ? gm->pubSecBar.load() + 1 : 1);
+		}
+		else if (gm) {
 			int songB = total;
 			float mins = songB * 4.f * 60.f / std::max(20.f, bpm);
 			bl = string::f("BAR %d / %d    %s %d / %d", gm->pubSongBar.load() + 1, songB, PART_NAMES[part],
@@ -1109,7 +1357,9 @@ struct GenraTechnoWidget : ModuleWidget {
 			bl += string::f("    SONG %d:%02d", (int) mins / 60, (int) mins % 60);
 		}
 		text(vg, f, 10, H - 8, bl, 8.f, DIM, NVG_ALIGN_LEFT, 0.6f);
-		if (gm) {
+		if (gm && inMain)
+			text(vg, f, W - 52, H - 8, "LIVE SONG OR A CLICK ON A PART: THE SONG GOES ON", 7.f, YEL, NVG_ALIGN_RIGHT, 0.5f);
+		else if (gm) {
 			int np = gm->pubNextPart.load();
 			text(vg, f, W - 52, H - 8, std::string("NEXT: ") + PART_NAMES[np % 6], 8.f, PART_COL[np % 6], NVG_ALIGN_RIGHT, 0.8f);
 		}
@@ -1190,6 +1440,12 @@ struct GenraTechnoWidget : ModuleWidget {
 			std::string err;
 			midifolder::save(std::string("GENRA TECHNO song ") + styles()[gm->style].name, d, &err);
 		}));
+		menu->addChild(createBoolMenuItem("LIVE song: DJ intro and outro (32 bars, drums only)", "",
+		                                  [=]() { return gm->liveDj; },
+		                                  [=](bool v) {
+			                                  gm->liveDj = v;
+			                                  gm->rebuildPlan();
+		                                  }));
 		midifolder::appendMenu(menu);
 	}
 };
