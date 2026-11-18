@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.4 (18 Nov 2026, test build, no release)
+
+- ABLAUF: a **TRANSPORT** section beside the jacks RUN, RST and NEXT: PATT / SONG, PLAY, STOP, LOOP. The SONG section
+  keeps the rows: ROW, PAD, BARS, PART over the whole width, INSERT, DELETE, UNDO. LOOP is greyed out in PATT mode.
+- Colours of the keys in all four modules: PLAY is dark and green while it plays; NEW, NEW ALL, NEW TRACK, MAKE SONG
+  and TAKE LIVE are orange; the chosen mode (MAIN / LIVE SONG, PATT / SONG) is blue; DROP looks like BUILD and BREAK.
+- One UNDO for GENRA TECHNO and GRID (REDO in GRID); it brings back style, key, scale, types, tempo and swing too.
+- LOCK: a locked track is never made new (NEW, NEW TRACK, the NEW input, a new TYPE, ABLAUF's variations as well).
+- While ABLAUF's song plays, edits by hand go onto the pad that plays (they were lost at the next row).
+- ABLAUF: PAD, BARS and PART show the selected row after MAKE SONG, TAKE LIVE, DELETE and UNDO; ROW turns only over
+  the rows there are; UNDO also takes the knobs PAD / BARS / PART and the right-click Build and GROW.
+- Press twice: GRID CLEAR and ABLAUF DELETE (like CLEAR ALL and TAKE LIVE).
+- Randomize leaves tempo, song length, the LEN knobs, ABLAUF's knobs and GRID's note knobs alone.
+- LEN back on 0 gives the track its length from before at once. Reset also resets SCALE and the DJ intro.
+
 ## 2.0.3 (18 Nov 2026, test build, no release)
 
 - ABLAUF: new key **TAKE LIVE** beside MAKE SONG. Press twice (SURE?): ABLAUF takes GENRA TECHNO's LIVE song as it is

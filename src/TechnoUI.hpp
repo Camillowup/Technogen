@@ -11,6 +11,10 @@ static const NVGcolor BG = nvgRGB(0x17, 0x18, 0x1d), PLATE = nvgRGB(0x21, 0x23, 
                       TXT = nvgRGB(0xd9, 0xdb, 0xe2), DIM = nvgRGB(0x8a, 0x8d, 0x99), DISP = nvgRGB(0x07, 0x08, 0x0a),
                       BTN = nvgRGB(0x2c, 0x2e, 0x36), RED = nvgRGB(0xff, 0x4a, 0x4a), WHITE = nvgRGB(0xf2, 0xf3, 0xf7),
                       YEL = nvgRGB(0xe3, 0xe3, 0x6a), GREEN = nvgRGB(0x5d, 0xff, 0x8a);
+// the meaning of a key's colour (the same in all four modules): orange makes something new, green plays, blue is the
+// mode that is chosen
+static const NVGcolor NEWCOL = nvgRGB(0xff, 0x8c, 0x2e), PLAYCOL = nvgRGB(0x2f, 0xb8, 0x66),
+                      MODECOL = nvgLerpRGBA(PLATE, nvgRGB(0x3d, 0xc9, 0xff), 0.55f);
 // the tracks: drums, bass, stab, lead, atmo
 static const NVGcolor TRACK_COL[5] = {nvgRGB(0x7b, 0x6c, 0xff), nvgRGB(0xb8, 0xf2, 0x3a), nvgRGB(0x3d, 0xc9, 0xff),
                                       nvgRGB(0x5f, 0xe0, 0xc8), nvgRGB(0xe0, 0x77, 0x9e)};
@@ -81,13 +85,15 @@ struct TButton : widget::OpaqueWidget {
 	NVGcolor col = BTN, textCol = TXT;
 	std::function<NVGcolor()> colOf;
 	std::function<bool()> lit;
+	std::function<bool()> enabled; // false: greyed out, a click does nothing
 	std::function<void()> act, release;
 	std::function<void(ui::Menu*)> rightMenu;
 	float fontSize = 9.f;
 	bool down = false;
 	void draw(const DrawArgs& args) override {
 		NVGcolor c = colOf ? colOf() : col;
-		bool on = lit && lit();
+		bool off = enabled && !enabled();
+		bool on = !off && lit && lit();
 		if (on)
 			c = mixc(c, WHITE, 0.18f);
 		if (down)
@@ -96,10 +102,14 @@ struct TButton : widget::OpaqueWidget {
 		if (on)
 			frame(args.vg, 0.8f, 0.8f, box.size.x - 1.6f, box.size.y - 1.6f, 2.2f, WHITE, 1.3f);
 		textFit(args.vg, bold(), box.size.x / 2, box.size.y / 2 + 0.5f, labelOf ? labelOf() : label, fontSize,
-		        box.size.x - 6.f, textCol, NVG_ALIGN_CENTER);
+		        box.size.x - 6.f, off ? mixc(textCol, c, 0.65f) : textCol, NVG_ALIGN_CENTER);
 	}
 	void onButton(const ButtonEvent& e) override {
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_PRESS) {
+			if (enabled && !enabled()) {
+				e.consume(this);
+				return;
+			}
 			down = true;
 			if (act)
 				act();

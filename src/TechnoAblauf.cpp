@@ -57,6 +57,9 @@ struct TechnoAblauf : Module {
 		paramQuantities[PAD_PARAM]->snapEnabled = true;
 		configSwitch(BARS_PARAM, 0.f, 6.f, 2.f, "Bars of the row", {"4", "8", "16", "24", "32", "48", "64"});
 		configSwitch(PART_PARAM, 0.f, 5.f, 1.f, "Part of the row", {"Intro", "Groove", "Build", "Drop", "Break", "Outro"});
+		// Randomize would scramble the selected row: the knobs keep their values
+		for (int i = 0; i < NUM_PARAMS; i++)
+			paramQuantities[i]->randomizeEnabled = false;
 		configInput(RUN_INPUT, "Run (trigger: play / stop the song)");
 		configInput(RST_INPUT, "Reset (to the first row)");
 		configInput(NEXT_INPUT, "Next row (trigger, at the next bar)");
@@ -223,7 +226,9 @@ struct TechnoAblaufWidget : ModuleWidget {
 	};
 	std::deque<Snap> undo;
 	std::vector<std::pair<SongScript*, float>> trash;
-	int armed = 0; // 1 copy (source), 2 copy (target), 3 clear, 4 clear all, 5 take live (press again)
+	int armed = 0; // 1 copy (source), 2 copy (target), 3 clear, 4 clear all, 5 take live, 6 delete (press again)
+	float knobIdle = 9.f;  // seconds since PAD / BARS / PART last changed the row (a new turn: one UNDO step)
+	uint32_t seenEdit = 0; // GENRA TECHNO's editSerial taken on
 	int copySrc = -1;
 	float armT = 0.f;
 	float last[TechnoAblauf::NUM_PARAMS] = {-1, -1, -1, -1};
@@ -233,6 +238,8 @@ struct TechnoAblaufWidget : ModuleWidget {
 
 	GenraTechno* gm() { return mod ? mod->link.main.load() : nullptr; }
 
+	/** PAD, BARS and PART show the selected row again (after the rows changed). */
+	void syncKnobs() { last[0] = -1.f; }
 	void pushUndo() {
 		if (!mod)
 			return;
@@ -292,6 +299,8 @@ struct TechnoAblaufWidget : ModuleWidget {
 		gs.key = base.key;
 		Pattern p = base;
 		auto newTrack = [&](int t, float densAdd) {
+			if (g->lock[t])
+				return; // a locked track stays as it is
 			GenSettings x = gs;
 			x.dens[t] = clamp(x.dens[t] + densAdd, 0.f, 1.f);
 			generate(p, x, hash(seed, t, part), t);
@@ -373,6 +382,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 		mod->mode = 1;
 		mod->selRow = 0;
 		mod->params[TechnoAblauf::ROW_PARAM].setValue(0.f);
+		syncKnobs();
 		mod->dirty = true;
 	}
 	void makeSong() {
@@ -421,6 +431,8 @@ struct TechnoAblaufWidget : ModuleWidget {
 		}
 		mod->mode = 1;
 		mod->selRow = 0;
+		mod->params[TechnoAblauf::ROW_PARAM].setValue(0.f);
+		syncKnobs();
 		mod->dirty = true;
 	}
 	void publish() {
@@ -495,8 +507,9 @@ struct TechnoAblaufWidget : ModuleWidget {
 
 		TButton* bp = place<TButton>(this, L::BTN_PATT);
 		bp->label = "PATT";
-		bp->fontSize = 7.5f;
-		bp->colOf = [=]() { return mod && mod->mode == 0 ? dark(RED, 0.6f) : BTN; };
+		bp->fontSize = 8.f;
+		bp->colOf = [=]() { return mod && mod->mode == 0 ? MODECOL : BTN; };
+		bp->textCol = WHITE;
 		bp->act = [=]() {
 			if (mod) {
 				mod->mode = 0;
@@ -505,8 +518,9 @@ struct TechnoAblaufWidget : ModuleWidget {
 		};
 		TButton* bs = place<TButton>(this, L::BTN_SONG);
 		bs->label = "SONG";
-		bs->fontSize = 7.5f;
-		bs->colOf = [=]() { return mod && mod->mode == 1 ? dark(RED, 0.6f) : BTN; };
+		bs->fontSize = 8.f;
+		bs->colOf = [=]() { return mod && mod->mode == 1 ? MODECOL : BTN; };
+		bs->textCol = WHITE;
 		bs->act = [=]() {
 			if (mod) {
 				mod->mode = 1;
@@ -556,7 +570,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 		};
 		TButton* mk = place<TButton>(this, L::BTN_MAKE);
 		mk->label = "MAKE SONG";
-		mk->col = RED;
+		mk->col = NEWCOL;
 		mk->textCol = WHITE;
 		mk->act = [=]() {
 			if (mod)
@@ -564,7 +578,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 		};
 		TButton* tk = place<TButton>(this, L::BTN_TAKE);
 		tk->labelOf = [=]() { return std::string(armed == 5 ? "SURE?" : "TAKE LIVE"); };
-		tk->col = dark(RED, 0.6f);
+		tk->col = NEWCOL;
 		tk->textCol = WHITE;
 		tk->lit = [=]() { return armed == 5; };
 		tk->act = [=]() {
@@ -628,10 +642,9 @@ struct TechnoAblaufWidget : ModuleWidget {
 		};
 		TButton* pl = place<TButton>(this, L::BTN_PLAY);
 		pl->label = "PLAY";
-		pl->col = RED;
+		pl->colOf = [=]() { return gm() && gm()->running.load() && mod && mod->mode == 1 ? PLAYCOL : BTN; };
 		pl->textCol = WHITE;
-		pl->fontSize = 10.f;
-		pl->lit = [=]() { return gm() && gm()->running.load() && mod->mode == 1; };
+		pl->fontSize = 11.f;
 		pl->act = [=]() {
 			GenraTechno* g = gm();
 			if (!g || !mod)
@@ -664,15 +677,24 @@ struct TechnoAblaufWidget : ModuleWidget {
 			mod->dirty = true;
 		};
 		TButton* del = place<TButton>(this, L::BTN_DELETE);
-		del->label = "DELETE";
+		del->labelOf = [=]() { return std::string(armed == 6 ? "SURE?" : "DELETE"); };
+		del->lit = [=]() { return armed == 6; };
 		del->fontSize = 7.f;
 		del->act = [=]() {
 			if (!mod || mod->rows.empty())
 				return;
+			if (armed != 6) {
+				armed = 6; // press again to delete the row
+				armT = 4.f;
+				return;
+			}
+			armed = 0;
 			pushUndo();
 			int r = clamp(mod->selRow, 0, (int) mod->rows.size() - 1);
 			mod->rows.erase(mod->rows.begin() + r);
 			mod->selRow = std::max(0, std::min(r, (int) mod->rows.size() - 1));
+			mod->params[TechnoAblauf::ROW_PARAM].setValue(mod->selRow);
+			syncKnobs();
 			mod->dirty = true;
 		};
 		TButton* un = place<TButton>(this, L::BTN_UNDO);
@@ -686,19 +708,23 @@ struct TechnoAblaufWidget : ModuleWidget {
 				mod->pads[i] = undo.back().pads[i];
 			mod->dj = undo.back().dj;
 			undo.pop_back();
+			mod->selRow = std::max(0, std::min(mod->selRow, (int) mod->rows.size() - 1));
+			mod->params[TechnoAblauf::ROW_PARAM].setValue(mod->selRow);
+			syncKnobs();
 			mod->dirty = true;
 		};
 		TButton* sp = place<TButton>(this, L::BTN_STOP);
 		sp->label = "STOP";
-		sp->fontSize = 7.f;
+		sp->fontSize = 9.5f;
 		sp->act = [=]() {
 			if (GenraTechno* g = gm())
 				g->stopReq = true;
 		};
 		TButton* lp = place<TButton>(this, L::BTN_LOOP);
 		lp->label = "LOOP";
-		lp->fontSize = 7.f;
+		lp->fontSize = 9.5f;
 		lp->lit = [=]() { return mod && mod->loop; };
+		lp->enabled = [=]() { return mod && mod->mode == 1; }; // only the song has rows to repeat
 		lp->act = [=]() {
 			if (mod) {
 				mod->loop = !mod->loop;
@@ -925,9 +951,21 @@ struct TechnoAblaufWidget : ModuleWidget {
 				i++;
 		if (armed && (armT -= dt) <= 0.f)
 			armed = 0;
+		knobIdle += dt;
 		if (g != lastMain) {
 			lastMain = g;
 			mod->dirty = true;
+			if (g)
+				seenEdit = g->editSerial;
+		}
+		// an edit by hand in GENRA TECHNO or GRID while the song plays: onto the pad it came from
+		if (g && g->editSerial != seenEdit) {
+			seenEdit = g->editSerial;
+			int pd = g->editPad;
+			if (mod->mode == 1 && g->script.load() && g->running.load() && pd >= 0 && pd < 64 && mod->pads[pd].used) {
+				mod->pads[pd].pat = g->editPat;
+				mod->dirty = true;
+			}
 		}
 		// CV requests
 		int pr = mod->padCvReq.exchange(-1);
@@ -941,6 +979,15 @@ struct TechnoAblaufWidget : ModuleWidget {
 			mod->params[TechnoAblauf::ROW_PARAM].setValue(std::min(rr, (int) mod->rows.size() - 1));
 		// the knobs: ROW picks a row and shows its pad, bars and part; those three change the row
 		int nRows = (int) mod->rows.size();
+		// ROW turns only over the rows there are
+		if (engine::ParamQuantity* pq = mod->paramQuantities[TechnoAblauf::ROW_PARAM]) {
+			float mx = (float) std::max(1, nRows - 1);
+			if (pq->maxValue != mx) {
+				pq->maxValue = mx;
+				if (mod->params[TechnoAblauf::ROW_PARAM].getValue() > mx)
+					mod->params[TechnoAblauf::ROW_PARAM].setValue(mx);
+			}
+		}
 		float rowV = mod->params[TechnoAblauf::ROW_PARAM].getValue();
 		if (rowV != last[0]) {
 			mod->selRow = clamp((int) rowV, 0, std::max(0, nRows - 1));
@@ -960,6 +1007,14 @@ struct TechnoAblaufWidget : ModuleWidget {
 				mod->dirty = true;
 		}
 		else if (nRows) {
+			// a new turn of PAD, BARS or PART: one UNDO step before it changes the row
+			bool turning = false;
+			for (int i = 1; i < 4; i++)
+				turning = turning || mod->params[i].getValue() != last[i];
+			if (turning && knobIdle > 1.f)
+				pushUndo();
+			if (turning)
+				knobIdle = 0.f;
 			Section& s = mod->rows[clamp(mod->selRow, 0, nRows - 1)];
 			bool ch = false;
 			float v = mod->params[TechnoAblauf::PAD_PARAM].getValue();
@@ -1003,6 +1058,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 				                                  [=]() {
 					                                  int r = mod->selRow;
 					                                  if (r < (int) mod->rows.size()) {
+						                                  pushUndo();
 						                                  mod->rows[r].build = (uint8_t) b;
 						                                  mod->dirty = true;
 					                                  }
@@ -1019,6 +1075,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 				                                  [=]() {
 					                                  int r = mod->selRow;
 					                                  if (r < (int) mod->rows.size()) {
+						                                  pushUndo();
 						                                  mod->rows[r].grow = (uint8_t) k;
 						                                  mod->rows[r].dropIdx = (uint8_t) k;
 						                                  mod->dirty = true;

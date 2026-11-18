@@ -7,6 +7,7 @@
 #include "TechnoUI.hpp"
 #include "TechnoGridLayout.hpp"
 #include <algorithm>
+#include <cstring>
 #include <cmath>
 
 using namespace tg;
@@ -33,6 +34,9 @@ struct TechnoGrid : Module {
 		paramQuantities[CHANCE_PARAM]->snapEnabled = true;
 		configParam(RATCH_PARAM, 1.f, 4.f, 1.f, "Ratchet (hits in the 16th)");
 		paramQuantities[RATCH_PARAM]->snapEnabled = true;
+		// Randomize leaves the selected note alone (these knobs edit it)
+		for (int i : {VEL_PARAM, NLEN_PARAM, CHANCE_PARAM, RATCH_PARAM})
+			paramQuantities[i]->randomizeEnabled = false;
 		link.owner = this;
 		for (int& h : heldStep)
 			h = -1;
@@ -583,19 +587,32 @@ struct GridView : widget::OpaqueWidget {
 struct TechnoGridWidget : ModuleWidget {
 	TechnoGrid* mod = nullptr;
 	GridView* view = nullptr;
-	std::deque<Pattern> undo, redo;
 	float last[TechnoGrid::NUM_PARAMS] = {};
 	bool seen = false;
+	// edits by hand: for a moment after one, what changes in the pattern goes to ABLAUF's pad (userEdit)
+	float editT = 0.f;
+	int editPad = -1;
+	Pattern editSeen;
+	float clearArm = 0.f, lockedT = 0.f; // CLEAR: press twice; NEW TRACK on a locked track: "LOCKED"
 
 	GenraTechno* gm() { return mod ? mod->link.main.load() : nullptr; }
+	/** One UNDO step (shared with GENRA TECHNO's UNDO), and watch the edit that follows. */
 	void pushUndo() {
 		GenraTechno* g = gm();
 		if (!g)
 			return;
-		undo.push_back(g->pat);
-		while (undo.size() > 40)
-			undo.pop_front();
-		redo.clear();
+		g->pushUndo();
+		touched();
+	}
+	void touched() {
+		GenraTechno* g = gm();
+		if (!g)
+			return;
+		if (editT <= 0.f) {
+			editPad = g->pubPad.load();
+			std::memcpy((void*) &editSeen, (const void*) &g->pat, sizeof(Pattern));
+		}
+		editT = 2.f;
 	}
 
 	TechnoGridWidget(TechnoGrid* module) {
@@ -703,29 +720,29 @@ struct TechnoGridWidget : ModuleWidget {
 		TButton* un = place<TButton>(this, L::BTN_UNDO);
 		un->label = "UNDO";
 		un->act = [=]() {
-			GenraTechno* g = gm();
-			if (g && !undo.empty()) {
-				redo.push_back(g->pat);
-				g->post(undo.back(), true);
-				g->pat = undo.back();
-				undo.pop_back();
+			if (GenraTechno* g = gm()) {
+				g->undoStep();
+				view->selStep = -1;
 			}
 		};
 		TButton* re = place<TButton>(this, L::BTN_REDO);
 		re->label = "REDO";
 		re->act = [=]() {
-			GenraTechno* g = gm();
-			if (g && !redo.empty()) {
-				undo.push_back(g->pat);
-				g->post(redo.back(), true);
-				g->pat = redo.back();
-				redo.pop_back();
+			if (GenraTechno* g = gm()) {
+				g->redoStep();
+				view->selStep = -1;
 			}
 		};
 		TButton* cl = place<TButton>(this, L::BTN_CLEAR);
-		cl->label = "CLEAR";
+		cl->labelOf = [=]() { return std::string(clearArm > 0.f ? "SURE?" : "CLEAR"); };
+		cl->lit = [=]() { return clearArm > 0.f; };
 		cl->act = [=]() {
 			GenraTechno* g = gm();
+			if (g && clearArm <= 0.f) {
+				clearArm = 4.f; // press again to clear the track
+				return;
+			}
+			clearArm = 0.f;
 			if (g) {
 				pushUndo();
 				Pattern p = g->pat;
@@ -763,13 +780,16 @@ struct TechnoGridWidget : ModuleWidget {
 			g->pat = p;
 		};
 		TButton* nt = place<TButton>(this, L::BTN_NEWTRK);
-		nt->label = "NEW TRACK";
-		nt->col = RED;
+		nt->labelOf = [=]() { return std::string(lockedT > 0.f ? "LOCKED" : "NEW TRACK"); };
+		nt->col = NEWCOL;
 		nt->textCol = WHITE;
 		nt->act = [=]() {
 			if (GenraTechno* g = gm()) {
-				pushUndo();
-				g->newReq |= 1 << mod->track;
+				if (g->lock[mod->track]) {
+					lockedT = 1.5f; // a locked track is never made new
+					return;
+				}
+				g->newReq |= 1 << mod->track; // (GENRA TECHNO makes it, with one UNDO step)
 			}
 		};
 		Drawn* ln = place<Drawn>(this, L::A_LINK);
@@ -787,12 +807,28 @@ struct TechnoGridWidget : ModuleWidget {
 		ModuleWidget::step();
 		if (!mod)
 			return;
-		mod->link.uiStep(APP->window->getLastFrameDuration());
+		float dt = APP->window->getLastFrameDuration();
+		mod->link.uiStep(dt);
 		GenraTechno* g = gm();
+		if (clearArm > 0.f)
+			clearArm -= dt;
+		if (lockedT > 0.f)
+			lockedT -= dt;
+		// an edit by hand: the changed pattern to ABLAUF's pad (only while the same pad plays)
+		if (editT > 0.f) {
+			editT -= dt;
+			if (!g || g->pubPad.load() != editPad)
+				editT = 0.f;
+			else if (std::memcmp((const void*) &g->pat, (const void*) &editSeen, sizeof(Pattern))) {
+				std::memcpy((void*) &editSeen, (const void*) &g->pat, sizeof(Pattern));
+				g->userEdit(g->pat);
+			}
+		}
 		// a turned knob changes the selected note
 		for (int i = TechnoGrid::VEL_PARAM; i < TechnoGrid::NUM_PARAMS; i++) {
 			float v = mod->params[i].getValue();
 			if (seen && v != last[i] && g && view->selStep >= 0) {
+				touched();
 				int t = mod->track, s = view->selStep;
 				if (t == T_DRUMS && view->selRow >= 0) {
 					Hit& h = g->pat.drum[view->selRow][s];

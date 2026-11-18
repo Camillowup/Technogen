@@ -38,7 +38,7 @@ for name, w in secs:
                                     ("BTN_COPY", "COPY"), ("BTN_PASTE", "PASTE"), ("BTN_NEWTRK", "NEW TRACK"))):
             bx = x + 2 + (i % 3) * (bw + 1.2)
             by = sy + 7 + (i // 3) * 10.5
-            P.button(n, bx, by, bw, 8.4, s, RED if s == "NEW TRACK" else "#2c2e36", "#ffffff" if s == "NEW TRACK" else TXT, 1.25)
+            P.button(n, bx, by, bw, 8.4, s, "#ff8c2e" if s == "NEW TRACK" else "#2c2e36", "#ffffff" if s == "NEW TRACK" else TXT, 1.25)
     x += w + 2
 
 P.finish(1800)

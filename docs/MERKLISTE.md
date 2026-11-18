@@ -1,8 +1,11 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 18. Nov. 2026, nach Build 2.0.3 (dev, kein Release).
+Stand 18. Nov. 2026, nach Build 2.0.4 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.4: ABLAUF-TRANSPORT (LOOP grau in PATT), Farben (PLAY grün, NEW orange, Modus blau), ein UNDO für Hauptmodul + GRID
+  (auch KEY/STYLE), LOCK schützt vor jedem Neu-Erzeugen, Änderungen im SONG-Modus bleiben auf dem Pad, zweimal drücken
+  bei GRID CLEAR / ABLAUF DELETE, Randomize, LEN auf 0, Reset.
 - 2.0.3: ABLAUF TAKE LIVE (zweimal drücken): Pads pro Abschnitt, Zeilen wie im LIVE-Song, klingt gleich; UNDO; FORM-Feld lesbar.
 - 2.0.2: SCALE-Dropdown (Wechsel behält Rhythmus), Follow mit GENRA/GENRA Instruments 2.40.0 (Bass, Melody, Pad, Drums, Stab), Presets folgen dem Stil.
 - 2.0.1: MAIN-Loop beim Start, LIVE SONG, Klick in die Zeitleiste (Sprung am Taktende), < PART / PART >, kürzeres Intro.

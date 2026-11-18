@@ -93,6 +93,9 @@ GenraTechno::GenraTechno() {
 	configParam(ENERGY_PARAM, 0.f, 1.f, 0.6f, "Energy", " %", 0.f, 100.f);
 	configParam(EVOLVE_PARAM, 0.f, 1.f, 0.2f, "Evolve (a small change every 8 bars)", " %", 0.f, 100.f);
 	configParam(LENGTH_PARAM, 2.f, 12.f, 6.f, "Song length (LIVE)", " min");
+	// Randomize leaves tempo and song length alone (a random tempo is no sound)
+	paramQuantities[BPM_PARAM]->randomizeEnabled = false;
+	paramQuantities[LENGTH_PARAM]->randomizeEnabled = false;
 	static const char* const flav[5] = {"Groove (swing feel, ghosts)", "Acid (slides and accents)", "Dub (echo hits)",
 	                                    "Loop (length of the loop)", "Move (the MOD output)"};
 	for (int t = 0; t < NUM_TRACKS; t++) {
@@ -100,6 +103,7 @@ GenraTechno::GenraTechno() {
 		configParam(FLAV_PARAM + t, 0.f, 1.f, 0.5f, std::string(TRACK_NAMES[t]) + " " + flav[t], " %", 0.f, 100.f);
 		configParam(LEN_PARAM + t, 0.f, 64.f, 0.f, std::string(TRACK_NAMES[t]) + " loop length (0: the pattern's)", " 16ths");
 		paramQuantities[LEN_PARAM + t]->snapEnabled = true;
+		paramQuantities[LEN_PARAM + t]->randomizeEnabled = false; // (a random loop length scrambles the pattern)
 	}
 	configInput(CLK_INPUT, "Clock (16ths)");
 	configInput(RST_INPUT, "Reset");
@@ -156,6 +160,8 @@ void GenraTechno::onReset(const ResetEvent& e) {
 	Module::onReset(e);
 	style = 2;
 	key = 9;
+	scaleSel = -1;
+	liveDj = false;
 	forcedBuild = B_AUTO;
 	for (int t = 0; t < NUM_TRACKS; t++) {
 		typeSel[t] = -1;
@@ -165,6 +171,58 @@ void GenraTechno::onReset(const ResetEvent& e) {
 	generate(p, settings(), random::u32());
 	post(p, true);
 	rebuildPlan();
+}
+
+GenraTechno::UndoState GenraTechno::snapshot() {
+	UndoState s;
+	s.pat = pat;
+	s.style = style;
+	s.key = key;
+	s.scaleSel = scaleSel;
+	for (int t = 0; t < NUM_TRACKS; t++)
+		s.typeSel[t] = typeSel[t];
+	s.bpm = params[BPM_PARAM].getValue();
+	s.swing = params[SWING_PARAM].getValue();
+	return s;
+}
+void GenraTechno::restore(const UndoState& s) {
+	bool newPlan = s.style != style || std::fabs(s.bpm - params[BPM_PARAM].getValue()) > 4.f;
+	style = s.style;
+	key = s.key;
+	scaleSel = s.scaleSel;
+	for (int t = 0; t < NUM_TRACKS; t++)
+		typeSel[t] = s.typeSel[t];
+	params[BPM_PARAM].setValue(s.bpm);
+	params[SWING_PARAM].setValue(s.swing);
+	post(s.pat, true);
+	pat = s.pat;
+	if (newPlan)
+		rebuildPlan();
+	userEdit(s.pat);
+}
+void GenraTechno::pushUndo() {
+	undoStack.push_back(snapshot());
+	while (undoStack.size() > 40)
+		undoStack.pop_front();
+	redoStack.clear();
+}
+bool GenraTechno::undoStep() {
+	if (undoStack.empty())
+		return false;
+	redoStack.push_back(snapshot());
+	UndoState s = undoStack.back();
+	undoStack.pop_back();
+	restore(s);
+	return true;
+}
+bool GenraTechno::redoStep() {
+	if (redoStack.empty())
+		return false;
+	undoStack.push_back(snapshot());
+	UndoState s = redoStack.back();
+	redoStack.pop_back();
+	restore(s);
+	return true;
 }
 
 float GenraTechno::bpm() {
@@ -243,7 +301,7 @@ void GenraTechno::startSong(int fromRow) {
 		row = clamp(fromRow, 0, (int) sc->rows.size() - 1);
 		const Section& s = sc->rows[row];
 		if (s.pad < sc->pads.size())
-			pat = sc->pads[s.pad];
+			pat = sc->pads[s.pad], pubPad = s.pad;
 		enterSection(s);
 	}
 	else {
@@ -271,7 +329,7 @@ void GenraTechno::enterMain() {
 		s = sc->rows[idx];
 		row = idx;
 		if (s.pad < sc->pads.size())
-			pat = sc->pads[s.pad];
+			pat = sc->pads[s.pad], pubPad = s.pad;
 	}
 	else {
 		Plan& p = plans[planCur.load()];
@@ -325,7 +383,7 @@ void GenraTechno::jumpTo(int bar) {
 		row = r;
 		const Section& s = sc->rows[r];
 		if (s.pad < sc->pads.size())
-			pat = sc->pads[s.pad];
+			pat = sc->pads[s.pad], pubPad = s.pad;
 		enterSection(s);
 		secBar = clamp(off, 0, std::max(0, (int) s.bars - 1));
 	}
@@ -366,7 +424,7 @@ void GenraTechno::advanceSection() {
 		}
 		const Section& s = sc->rows[row];
 		if (s.pad < sc->pads.size())
-			pat = sc->pads[s.pad];
+			pat = sc->pads[s.pad], pubPad = s.pad;
 		enterSection(s);
 		return;
 	}
@@ -897,8 +955,8 @@ void GenraTechno::dataFromJson(json_t* root) {
 // ================================================================ the panel
 struct GenraTechnoWidget : ModuleWidget {
 	GenraTechno* gm = nullptr;
-	std::deque<Pattern> undo;
 	float lastLen[NUM_TRACKS] = {-1, -1, -1, -1, -1};
+	int origLen[NUM_TRACKS] = {0, 0, 0, 0, 0}; // a track's loop length before its LEN knob took over (0: not known)
 	float lastLength = -1.f, lastBpm = -1.f;
 	std::string flash;
 	float flashT = 0.f;
@@ -967,18 +1025,33 @@ struct GenraTechnoWidget : ModuleWidget {
 	}
 
 	void pushUndo() {
-		if (!gm)
-			return;
-		undo.push_back(gm->pat);
-		while (undo.size() > 24)
-			undo.pop_front();
+		if (gm)
+			gm->pushUndo();
+	}
+	void say(const std::string& s) {
+		flash = s;
+		flashT = 1.5f;
 	}
 
-	/** New pattern (track -1: all unlocked tracks). */
-	void regenerate(int track) {
+	/** New pattern (track -1: all unlocked tracks). A locked track is never made new. push: one UNDO step first. */
+	void regenerate(int track, bool push = true) {
 		if (!gm)
 			return;
-		pushUndo();
+		if (track >= 0 && gm->lock[track]) {
+			say(std::string(TRACK_NAMES[track]) + " IS LOCKED");
+			return;
+		}
+		if (track < 0) {
+			bool all = true;
+			for (int t = 0; t < NUM_TRACKS; t++)
+				all = all && gm->lock[t];
+			if (all) {
+				say("ALL TRACKS ARE LOCKED");
+				return;
+			}
+		}
+		if (push)
+			pushUndo();
 		Pattern p = gm->pat;
 		GenSettings g = gm->settings();
 		uint32_t seed = random::u32();
@@ -995,6 +1068,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		else
 			generate(p, g, seed, track);
 		gm->post(p, !gm->running.load());
+		gm->userEdit(p);
 		// instruments that follow (Presets follow GENRA): a preset for the style
 		for (int t = 0; t < NUM_TRACKS; t++)
 			if ((track < 0 && !gm->lock[t]) || track == t)
@@ -1008,8 +1082,10 @@ struct GenraTechnoWidget : ModuleWidget {
 		Pattern p = gm->pat;
 		changeScale(p, gm->effectiveScale(), gm->lock);
 		gm->post(p, true);
+		gm->userEdit(p);
 	}
-	void mutateTracks(int mask, float amount) {
+	/** byHand: MUTATE (an edit, ABLAUF keeps it on the pad); else EVOLVE (the song's own movement). */
+	void mutateTracks(int mask, float amount, bool byHand = false) {
 		if (!gm)
 			return;
 		Pattern p = gm->pat;
@@ -1020,18 +1096,21 @@ struct GenraTechnoWidget : ModuleWidget {
 				mutate(p, g, random::u32(), t, amount);
 				any = true;
 			}
-		if (any)
+		if (any) {
 			gm->post(p, false);
+			if (byHand)
+				gm->userEdit(p);
+		}
 	}
 	void setStyle(int s) {
 		if (!gm || s == gm->style)
 			return;
+		pushUndo(); // before: UNDO brings back the style, tempo and swing too
 		gm->style = s;
 		const Style& st = styles()[s];
-		(void) st;
 		gm->params[GenraTechno::BPM_PARAM].setValue(st.bpm);
 		gm->params[GenraTechno::SWING_PARAM].setValue(st.swing);
-		regenerate(-1);
+		regenerate(-1, false);
 		gm->rebuildPlan();
 	}
 	void setKey(int k) {
@@ -1054,6 +1133,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		p.key = (uint8_t) k;
 		gm->key = k;
 		gm->post(p, true);
+		gm->userEdit(p);
 	}
 
 	GenraTechnoWidget(GenraTechno* module) {
@@ -1103,9 +1183,8 @@ struct GenraTechnoWidget : ModuleWidget {
 		// transport
 		TButton* play = place<TButton>(this, L::BTN_PLAY);
 		play->label = "PLAY";
-		play->col = RED;
+		play->colOf = [=]() { return gm && gm->running.load() ? PLAYCOL : BTN; }; // green while it plays
 		play->textCol = WHITE;
-		play->lit = [=]() { return gm && gm->running.load(); };
 		play->act = [=]() {
 			if (gm)
 				gm->runReq = true;
@@ -1123,8 +1202,8 @@ struct GenraTechnoWidget : ModuleWidget {
 		for (int i = 0; i < 4; i++) {
 			TButton* b = place<TButton>(this, PB[i]);
 			b->label = PN[i];
-			b->col = i == 1 ? RED : nvgRGB(0x3a, 0x2a, 0x2e);
-			b->textCol = i == 1 ? WHITE : nvgRGB(0xff, 0xb3, 0xb3);
+			b->col = nvgRGB(0x3a, 0x2a, 0x2e);
+			b->textCol = nvgRGB(0xff, 0xb3, 0xb3);
 			b->fontSize = 10.f;
 			int part = PP[i];
 			b->lit = [=]() { return gm && part >= 0 && gm->performReq.load() == part; };
@@ -1145,6 +1224,8 @@ struct GenraTechnoWidget : ModuleWidget {
 		}
 		TButton* na = place<TButton>(this, L::BTN_NEWALL);
 		na->label = "NEW ALL";
+		na->col = NEWCOL;
+		na->textCol = WHITE;
 		na->act = [=]() {
 			if (gm) {
 				gm->songSeed = random::u32();
@@ -1159,7 +1240,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		mu->label = "MUTATE";
 		mu->act = [=]() {
 			pushUndo();
-			mutateTracks(31, 0.6f);
+			mutateTracks(31, 0.6f, true);
 		};
 		TButton* la = place<TButton>(this, L::BTN_LOCKALL);
 		la->label = "LOCK";
@@ -1183,10 +1264,8 @@ struct GenraTechnoWidget : ModuleWidget {
 		TButton* un = place<TButton>(this, L::BTN_UNDO);
 		un->label = "UNDO";
 		un->act = [=]() {
-			if (gm && !undo.empty()) {
-				gm->post(undo.back(), true);
-				undo.pop_back();
-			}
+			if (gm && !gm->undoStep())
+				say("NOTHING TO UNDO");
 		};
 		// fields
 		TField* fam = place<TField>(this, L::F_FAMILY);
@@ -1267,13 +1346,22 @@ struct GenraTechnoWidget : ModuleWidget {
 				return std::string(typeName(t, i - 1));
 			};
 			f->choose = [=](int i) {
-				if (!gm)
+				if (!gm || gm->typeSel[t] == i - 1)
 					return;
+				if (gm->lock[t]) {
+					// locked: the type is kept for the next NEW after unlocking, the notes stay
+					gm->typeSel[t] = i - 1;
+					say(std::string(TRACK_NAMES[t]) + " IS LOCKED: THE TYPE COMES WITH THE NEXT NEW");
+					return;
+				}
+				pushUndo();
 				gm->typeSel[t] = i - 1;
-				regenerate(t);
+				regenerate(t, false);
 			};
 			TButton* n = place<TButton>(this, BN[t]);
 			n->label = "NEW";
+			n->col = NEWCOL;
+			n->textCol = WHITE;
 			n->act = [=]() { regenerate(t); };
 			TButton* l = place<TButton>(this, BL[t]);
 			l->label = "LOCK";
@@ -1324,7 +1412,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		TButton* mn = place<TButton>(this, L::BTN_MAIN);
 		mn->label = "MAIN";
 		mn->fontSize = 8.f;
-		mn->colOf = [=]() { return gm && gm->mainMode.load() ? RED : BTN; };
+		mn->colOf = [=]() { return gm && gm->mainMode.load() ? MODECOL : BTN; };
 		mn->textCol = WHITE;
 		mn->act = [=]() {
 			if (!gm)
@@ -1336,7 +1424,8 @@ struct GenraTechnoWidget : ModuleWidget {
 		TButton* sg = place<TButton>(this, L::BTN_SONGMODE);
 		sg->labelOf = [=]() { return std::string(gm && gm->pubSongMode.load() ? "ABLAUF SONG" : "LIVE SONG"); };
 		sg->fontSize = 7.f;
-		sg->colOf = [=]() { return gm && !gm->mainMode.load() ? dark(PART_COL[1], 0.9f) : BTN; };
+		sg->colOf = [=]() { return gm && !gm->mainMode.load() ? MODECOL : BTN; };
+		sg->textCol = WHITE;
 		sg->act = [=]() {
 			if (!gm || !gm->mainMode.load())
 				return;
@@ -1459,12 +1548,20 @@ struct GenraTechnoWidget : ModuleWidget {
 		int mr = gm->mutateReq.exchange(0);
 		if (mr)
 			mutateTracks(mr, 0.3f);
-		// the LEN knobs act at once on the pattern
+		// the LEN knobs act at once on the pattern; back on 0 the track gets the length it had before the knob took over
 		for (int t = 0; t < NUM_TRACKS; t++) {
 			float v = gm->params[GenraTechno::LEN_PARAM + t].getValue();
 			if (v != lastLen[t]) {
-				if (lastLen[t] >= 0.f && v > 0.f)
-					gm->pat.len[t] = (uint8_t) clamp((int) v, 1, 64);
+				if (lastLen[t] >= 0.f) {
+					if (v > 0.f) {
+						if (lastLen[t] == 0.f || origLen[t] <= 0)
+							origLen[t] = gm->pat.trackLen(t);
+						gm->pat.len[t] = (uint8_t) clamp((int) v, 1, 64);
+					}
+					else
+						gm->pat.len[t] = (uint8_t) clamp(origLen[t] > 0 ? origLen[t] : 16 * std::max(1, (int) gm->pat.bars), 1, 64);
+					gm->userEdit(gm->pat);
+				}
 				lastLen[t] = v;
 			}
 		}

@@ -3,19 +3,14 @@
 namespace technoablauf_layout {
 static const float WIDTH_HP = 34;
 static const float A_LINK[4] = {142.720f, 4.500f, 26.000f, 5.500f}; // display
-static const float BTN_PATT[4] = {51.000f, 15.400f, 12.500f, 4.600f}; // button
-static const float BTN_SONG[4] = {64.500f, 15.400f, 13.500f, 4.600f}; // button
 static const float DISP_SONG[4] = {7.000f, 21.500f, 72.000f, 44.000f}; // display
-static const float K_ROW[2] = {14.000f, 73.000f}; // knob
-static const float K_PAD[2] = {29.000f, 73.000f}; // knob
-static const float K_BARS[2] = {42.000f, 73.000f}; // knob
-static const float K_PART[2] = {55.000f, 73.000f}; // knob
-static const float BTN_PLAY[4] = {63.000f, 68.800f, 16.000f, 8.400f}; // button
-static const float BTN_INSERT[4] = {7.000f, 83.600f, 13.600f, 6.400f}; // button
-static const float BTN_DELETE[4] = {21.600f, 83.600f, 13.600f, 6.400f}; // button
-static const float BTN_UNDO[4] = {36.200f, 83.600f, 13.600f, 6.400f}; // button
-static const float BTN_STOP[4] = {50.800f, 83.600f, 13.600f, 6.400f}; // button
-static const float BTN_LOOP[4] = {65.400f, 83.600f, 13.600f, 6.400f}; // button
+static const float K_ROW[2] = {15.000f, 73.000f}; // knob
+static const float K_PAD[2] = {34.000f, 73.000f}; // knob
+static const float K_BARS[2] = {52.500f, 73.000f}; // knob
+static const float K_PART[2] = {71.000f, 73.000f}; // knob
+static const float BTN_INSERT[4] = {7.000f, 83.400f, 23.333f, 6.200f}; // button
+static const float BTN_DELETE[4] = {31.333f, 83.400f, 23.333f, 6.200f}; // button
+static const float BTN_UNDO[4] = {55.667f, 83.400f, 23.333f, 6.200f}; // button
 static const float BTN_EXPSONG[4] = {15.000f, 91.600f, 30.000f, 5.600f}; // button
 static const float BTN_EXPPAD[4] = {47.000f, 91.600f, 32.000f, 5.600f}; // button
 static const float BTN_BANK0[4] = {130.720f, 15.400f, 7.600f, 4.600f}; // button
@@ -47,4 +42,9 @@ static const float OUT_PART[2] = {27.800f, 121.400f}; // output
 static const float OUT_BUILD[2] = {37.200f, 121.400f}; // output
 static const float OUT_DROP[2] = {46.600f, 121.400f}; // output
 static const float OUT_PHRASE[2] = {56.000f, 121.400f}; // output
+static const float BTN_PATT[4] = {68.000f, 111.000f, 17.000f, 6.600f}; // button
+static const float BTN_SONG[4] = {68.000f, 118.600f, 17.000f, 6.600f}; // button
+static const float BTN_PLAY[4] = {88.000f, 111.000f, 30.000f, 14.200f}; // button
+static const float BTN_STOP[4] = {120.000f, 111.000f, 22.000f, 14.200f}; // button
+static const float BTN_LOOP[4] = {144.000f, 111.000f, 21.720f, 14.200f}; // button
 }

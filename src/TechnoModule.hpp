@@ -125,6 +125,33 @@ struct GenraTechno : Module {
 	std::atomic<bool> pubSongMode{false}, pubMain{false};
 	std::atomic<int> pubMainIdx{0};
 	std::atomic<int> pubStepInBar{0};
+	std::atomic<int> pubPad{-1}; // SONG: the ABLAUF pad the pattern that plays came from
+
+	// ---------------------------------------------------------------- shared by the panels (UI thread only)
+	// One UNDO for GENRA TECHNO and GRID: the pattern and the choices that go with it (style, key, scale, types,
+	// tempo, swing). REDO (GRID) goes the other way.
+	struct UndoState {
+		tg::Pattern pat;
+		int style = 2, key = 9, scaleSel = -1;
+		int typeSel[tg::NUM_TRACKS] = {};
+		float bpm = 132.f, swing = 51.f;
+	};
+	std::deque<UndoState> undoStack, redoStack;
+	UndoState snapshot();
+	void restore(const UndoState& s);
+	void pushUndo();
+	bool undoStep();
+	bool redoStep();
+	// An edit by hand (NEW, KEY, GRID …): ABLAUF takes it onto the pad that plays (SONG), so it is not lost at the
+	// next row. Not EVOLVE: that is the song's own movement.
+	uint32_t editSerial = 0;
+	tg::Pattern editPat;
+	int editPad = -1;
+	void userEdit(const tg::Pattern& p) {
+		editPat = p;
+		editPad = pubPad.load();
+		editSerial++;
+	}
 
 	// the displays' copy of the song (UI thread only)
 	std::mutex viewMx;

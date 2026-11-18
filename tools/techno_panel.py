@@ -7,7 +7,7 @@ W = P.W
 
 # ---- head: transport and the big knobs
 P.button("BTN_STOP", 96, 3.6, 15, 7.2, "STOP")
-P.button("BTN_PLAY", 113, 3.6, 15, 7.2, "PLAY", RED, "#ffffff")
+P.button("BTN_PLAY", 113, 3.6, 15, 7.2, "PLAY", "#2c2e36", TXT)
 P.knob("K_BPM", 140, 9.2, "medium", None, "BPM")
 P.knob("K_SWING", 155, 9.2, "medium", None, "SWING")
 P.knob("K_ENERGY", 174, 9.2, "large", RED, "ENERGY")
@@ -19,7 +19,7 @@ P.display("DISP_MAIN", 5, 21.5, 150, 25.5)
 # keys in the display: a part back / on, MAIN (the drop in a loop) or the song
 P.button("BTN_PREV", 80, 23.7, 12.5, 5.5, "< PART", "#2c2e36", TXT, 1.25)
 P.button("BTN_NEXT", 93.5, 23.7, 12.5, 5.5, "PART >", "#2c2e36", TXT, 1.25)
-P.button("BTN_MAIN", 108, 23.7, 13, 5.5, "MAIN", RED, "#ffffff", 1.35)
+P.button("BTN_MAIN", 108, 23.7, 13, 5.5, "MAIN", mix("#3dc9ff", 0.55), "#ffffff", 1.35)
 P.button("BTN_SONGMODE", 122, 23.7, 15, 5.5, "LIVE SONG", "#2c2e36", DIM, 1.15)
 P.field("F_FAMILY", 5, 50, 27, 5.6, "FAM  BERLIN")
 P.field("F_STYLE", 34, 50, 37, 5.6, "STYLE  HYPNOTIC")
@@ -31,9 +31,9 @@ P.field("F_BUILD", 128, 50, 27, 5.6, "BUILD  AUTO", YEL)
 P.section(160, 21.5, 79, 34.1, "PERFORM")
 bw, bh = 17.4, 8.4
 for i, (n, s) in enumerate((("BTN_BUILD", "BUILD"), ("BTN_DROP", "DROP"), ("BTN_BREAK", "BREAK"), ("BTN_FILL", "FILL"))):
-    P.button(n, 162.5 + i * (bw + 1.6), 28.0, bw, bh, s, RED if s == "DROP" else "#3a2a2e", "#ffffff" if s == "DROP" else "#ffb3b3", 1.6)
+    P.button(n, 162.5 + i * (bw + 1.6), 28.0, bw, bh, s, "#3a2a2e", "#ffb3b3", 1.6)
 for i, (n, s) in enumerate((("BTN_NEWALL", "NEW ALL"), ("BTN_MUTATE", "MUTATE"), ("BTN_LOCKALL", "LOCK"), ("BTN_UNDO", "UNDO"))):
-    P.button(n, 162.5 + i * (bw + 1.6), 38.4, bw, 7.0, s)
+    P.button(n, 162.5 + i * (bw + 1.6), 38.4, bw, 7.0, s, "#ff8c2e" if s == "NEW ALL" else "#2c2e36", "#ffffff" if s == "NEW ALL" else TXT)
 P.text(199.5, 49.6, "BUILD / DROP / BREAK: NEXT PHRASE", 1.15, DIM, 600, sp=0.2)
 P.text(199.5, 52.8, "HOLD = STAY IN THE PART", 1.15, DIM, 600, sp=0.2)
 
@@ -52,7 +52,7 @@ for i, (name, col, fl) in enumerate(TR):
     P.knob(f"K_LEN{i}", x + tw * 0.86, ty + 19.4, "small", None, "LEN", 3.3 + (12.19 - 7.68) / 2)
     bw2 = (tw - 4 - 2 * 1.2) / 3
     for k, s in enumerate(("NEW", "LOCK", "MUTE")):
-        P.button(f"BTN_{s}{i}", x + 2 + k * (bw2 + 1.2), ty + 32.0, bw2, 6.6, s, "#2c2e36", TXT, 1.35)
+        P.button(f"BTN_{s}{i}", x + 2 + k * (bw2 + 1.2), ty + 32.0, bw2, 6.6, s, "#ff8c2e" if s == "NEW" else "#2c2e36", "#ffffff" if s == "NEW" else TXT, 1.35)
 
 # ---- jacks
 P.strip()

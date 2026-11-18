@@ -43,6 +43,10 @@ right-click › Connect to …).
   the drop, more percussion, the lead an octave up in melodic styles).
 - **PERFORM**: BUILD, DROP and BREAK go there at the start of the next phrase (8 bars); hold the key to stay in that
   part. FILL plays a fill at the end of the bar. NEW ALL, MUTATE, LOCK (all tracks), UNDO.
+- **LOCK** keeps a track as it is: NEW, NEW ALL, NEW TRACK, the NEW input, MUTATE, EVOLVE, a new TYPE and ABLAUF's
+  variations leave it alone (a TYPE chosen while locked comes with the next NEW). Edits by hand and KEY still act.
+- **UNDO** (here and in GRID, one memory for both) also brings back style, key, scale, types, tempo and swing.
+- **Colours of the keys** (all four modules): orange makes something new, green plays, blue is the chosen mode.
 - **ENERGY** thins out or fills up hats, ghosts and percussion; **EVOLVE** changes one track a little every 8 bars.
 - **Outputs**: 8 drum triggers (level = velocity), BASS and LEAD (V/OCT, GATE, VEL, ACC, SLIDE), STAB (V/OCT and
   GATE poly 4, VEL), ATMO (V/OCT and GATE poly 4, MOD), CLK, RST, BAR, DUCK (a sidechain envelope on every kick) and
@@ -58,7 +62,7 @@ right-click › Connect to …).
 Pick a track (DRUMS … ATMO). Click: add or select a note; right-click: delete; drag a note: its length; click in the
 ruler: the END of the track's loop. Under the roll: velocity and chance (drag), ratchets (click: 1–4). VIEW: BAR,
 ZOOM (1/2/4 bars), PITCH, ALL · SCALE · USED. NOTES: VEL, LEN, CHANCE, RATCH, ACCENT, SLIDE, SNAP (only scale notes),
-FOLLOW (the page follows the playhead). EDIT: UNDO, REDO, CLEAR, COPY, PASTE, NEW TRACK. SOLO plays only this track.
+FOLLOW (the page follows the playhead). EDIT: UNDO, REDO, CLEAR (press twice), COPY, PASTE, NEW TRACK. SOLO plays only this track.
 REC writes MIDI notes at the playing step (right-click › MIDI input).
 
 ## GENRA TECHNO ABLAUF
@@ -67,10 +71,14 @@ REC writes MIDI notes at the playing step (right-click › MIDI input).
   INTRO … OUTRO makes a variant of the last pattern for that part on the next free pad (press again: another one).
   COPY (from, to), CLEAR (then a pad), CLEAR ALL (press twice; UNDO brings it back). Right-click a pad: MIDI export.
 - **SONG**: the rows (pad, bars, part, build). ROW picks a row, PAD, BARS and PART change it; INSERT puts the last pad
-  after it, DELETE, UNDO, LOOP (the selected row repeats). FORM + MAKE SONG builds a song in a club form from the pads.
+  after it, DELETE (press twice), UNDO. FORM + MAKE SONG builds a song in a club form from the pads.
   TAKE LIVE (press twice) takes GENRA TECHNO's LIVE song: one pad per section with the pattern it plays, the rows as
   in the LIVE song (UNDO: back).
-  DJ IN/OUT: intro and outro drums only. PLAY plays the song from the selected row (SONG mode), STOP stops.
+  DJ IN/OUT: intro and outro drums only.
+- **TRANSPORT** (beside RUN, RST, NEXT): PATT or SONG, PLAY plays the song from the selected row (SONG mode; green
+  while it plays), STOP stops, LOOP repeats the selected row (only in SONG mode, else greyed out).
+- While the song plays, edits in GENRA TECHNO and GRID (NEW, KEY, notes …) go onto the pad that plays, so they are
+  there again the next time the song comes to it.
   EXPORT SONG / EXPORT PAD write MIDI.
 - Inputs: RUN, RST, NEXT, PAD CV, ROW CV. Outputs: END, ROW, PART (0–5 V), BUILD (gate), DROP, PHRASE.
 
