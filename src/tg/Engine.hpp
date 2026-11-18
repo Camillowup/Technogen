@@ -67,12 +67,12 @@ struct Pattern {
 };
 
 // ------------------------------------------------------------------ styles
-enum Family { F_DETROIT, F_BERLIN, F_ACID, F_HARD, F_MELODIC, F_HOUSE, F_TRANCE, F_ELECTRO, NUM_FAMILIES };
+enum Family { F_DETROIT, F_BERLIN, F_ACID, F_HARD, F_MELODIC, F_HOUSE, F_TRANCE, F_ELECTRO, F_BASS, F_GARAGE, NUM_FAMILIES };
 extern const char* const FAMILY_NAMES[NUM_FAMILIES];
 enum Harmony { H_STATIC, H_MODAL, H_PROG };
 extern const char* const HARMONY_NAMES[3];
-enum KickType { K_FOUR, K_FOUR_GHOST, K_BROKEN, K_BREAKS };
-enum BassType { B_OFFBEAT, B_ROLLING, B_ACID, B_FUNK, B_LONG, B_GALLOP };
+enum KickType { K_FOUR, K_FOUR_GHOST, K_BROKEN, K_BREAKS, K_HALF, K_DNB, K_AMEN, K_TWOSTEP };
+enum BassType { B_OFFBEAT, B_ROLLING, B_ACID, B_FUNK, B_LONG, B_GALLOP, B_WOBBLE, B_REESE, B_BOUNCE };
 enum StabType { S_NONE, S_DUB, S_CHORD, S_ONE, S_PLUCK };
 enum LeadType { L_NONE, L_LOOP, L_ARP, L_MOTIF, L_ACID };
 enum AtmoType { A_DRONE, A_PAD, A_HIGH };
@@ -95,7 +95,10 @@ struct Style {
 	bool fullHat; // closed hats in 16ths (else 8ths)
 	int stabLen;  // stab loop length (16 or an odd one)
 	int leadLen;
+	int feel;     // FEEL_FULL (backbeat on 2 and 4) or FEEL_HALF (on 3)
 };
+enum Feel { FEEL_FULL, FEEL_HALF, NUM_FEELS };
+extern const char* const FEEL_NAMES[NUM_FEELS];
 extern const std::vector<Style>& styles();
 int numStyles();
 /** Styles of a family, in list order. */
@@ -122,7 +125,10 @@ struct GenSettings {
 	int len[NUM_TRACKS] = {0, 0, 0, 0, 0};                         // loop length in 16ths, 0: the generator's
 	int type[NUM_TRACKS] = {-1, -1, -1, -1, -1};                  // per-track type override (-1: style's)
 	int mode = -1;                                               // scale (SCALES), -1: the style's
+	int feel = -1;                                               // FEEL_FULL / FEEL_HALF, -1: the style's
 };
+/** The feel the drums are made in (the setting, else the style's). */
+int feelOf(const GenSettings& g);
 /** A whole new pattern (track -1) or one track (the others stay). */
 void generate(Pattern& p, const GenSettings& s, uint32_t seed, int track = -1);
 /** Small change of one track (EVOLVE / MUTATE): a few hits or notes move. amount 0..1. */

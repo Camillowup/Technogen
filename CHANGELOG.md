@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.6 (18 Nov 2026, test build, no release)
+
+- Two new families with 12 styles: BASS (DUBSTEP, RIDDIM, DRUM & BASS, LIQUID DNB, NEUROFUNK, JUNGLE, HALFTIME) and
+  GARAGE (UK GARAGE, 2-STEP, SPEED GARAGE, BASSLINE, FUTURE GARAGE). Bass music gets to its first drop early.
+- New field **FEEL** under the display: AUTO (the style's), FULL or HALF (the backbeat on 3). A new feel makes new drums.
+- New drum types HALF-TIME, DNB TWO-STEP, AMEN CHOPS, UK 2-STEP and bass types WOBBLE, REESE, BASSLINE.
+- The FAM field is gone: STYLE shows family and style, its list has the families as submenus (with the tempo).
+- SWING up to 66 %.
+
 ## 2.0.5 (18 Nov 2026, test build, no release)
 
 - MOD: the table is turned. Columns are the song's sections (from ABLAUF or the LIVE song), rows the lanes A–D. A cell

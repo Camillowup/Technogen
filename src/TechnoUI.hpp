@@ -137,6 +137,7 @@ struct TField : widget::OpaqueWidget {
 	std::function<std::string(int)> item;
 	std::function<void(int)> choose;
 	std::function<bool(int)> separatorBefore;
+	std::function<std::string(int)> groupOf; // set: the list in submenus (items of a group follow each other)
 	void draw(const DrawArgs& args) override {
 		std::string v = value ? value() : "";
 		nvgSave(args.vg);
@@ -162,6 +163,22 @@ struct TField : widget::OpaqueWidget {
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_PRESS && count) {
 			ui::Menu* menu = createMenu();
 			int n = count(), cur = current ? current() : -1;
+			if (groupOf) {
+				for (int a = 0; a < n;) {
+					int b = a;
+					std::string g = groupOf(a);
+					while (b < n && groupOf(b) == g)
+						b++;
+					bool here = cur >= a && cur < b;
+					menu->addChild(createSubmenuItem(g, here ? "✔" : "", [=](ui::Menu* sub) {
+						for (int i = a; i < b; i++)
+							sub->addChild(createCheckMenuItem(item(i), "", [=]() { return cur == i; }, [=]() { choose(i); }));
+					}));
+					a = b;
+				}
+				e.consume(this);
+				return;
+			}
 			for (int i = 0; i < n; i++) {
 				if (separatorBefore && separatorBefore(i))
 					menu->addChild(new ui::MenuSeparator);

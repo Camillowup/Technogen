@@ -18,7 +18,9 @@ int main() {
 			kicks += p.drum[D_KICK][i].vel > 0;
 			if (p.mel[0][i].on) { bass++; if (p.drum[D_KICK][i].vel > 100) clash++; }
 		}
-		CHECK(kicks >= 8, "%s: %d kicks", styles()[s].name, kicks);
+		CHECK(kicks >= (styles()[s].feel == FEEL_HALF ? 4 : 8), "%s: %d kicks", styles()[s].name, kicks);
+		if (styles()[s].feel == FEEL_HALF) // half-time: the backbeat on the 3, no kick there
+			CHECK((p.drum[D_SNARE][8].vel || p.drum[D_CLAP][8].vel) && !p.drum[D_KICK][8].vel, "%s: no backbeat on the 3", styles()[s].name);
 		CHECK(bass > 0 || p.len[1] < 64, "%s: no bass", styles()[s].name);
 		std::vector<Section> song = planSong(s, 6.f, styles()[s].bpm, 7 + s);
 		int bars = songBars(song);
@@ -50,6 +52,17 @@ int main() {
 		}
 		for (int t = 0; t < NUM_TRACKS; t++) mutate(p, g, 5, t, 0.5f);
 		generate(p, g, 99, T_LEAD);
+	}
+	{ // FEEL overrides the style: DRUM & BASS in HALF, DUBSTEP in FULL
+		for (int f = 0; f < 2; f++) {
+			GenSettings g;
+			g.style = f ? 22 : 24;
+			g.feel = f ? FEEL_FULL : FEEL_HALF;
+			Pattern p;
+			generate(p, g, 77);
+			bool b3 = p.drum[D_SNARE][8].vel || p.drum[D_CLAP][8].vel, b24 = p.drum[D_SNARE][4].vel || p.drum[D_CLAP][4].vel;
+			CHECK(f ? (b24 && !b3) : (b3 && !b24), "%s with FEEL %s", styles()[g.style].name, FEEL_NAMES[g.feel]);
+		}
 	}
 	std::printf(fails ? "%d FAILS\n" : "ok\n", fails);
 	return fails ? 1 : 0;

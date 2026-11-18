@@ -10,7 +10,7 @@ the instruments you patch (GENRA Instruments or any other module).
 
 | Module | HP | What it does |
 |---|---|---|
-| **GENRA TECHNO** | 48 | The generator and player: 22 styles, five tracks, a whole song made live |
+| **GENRA TECHNO** | 48 | The generator and player: 34 styles, five tracks, a whole song made live |
 | **GENRA TECHNO GRID** | 44 | The editor: drum raster and piano roll, velocity, chance, ratchets, loop length per track |
 | **GENRA TECHNO ABLAUF** | 34 | The song arranger: 64 pattern pads, variations per part, a song list, MAKE SONG |
 | **GENRA TECHNO MOD** | 30 | Four CV lanes that move with the song (filter sweeps, sends, levels …) |
@@ -20,12 +20,16 @@ right-click › Connect to …).
 
 ## GENRA TECHNO
 
-- **Styles** in eight families: DETROIT (Classic, Soul), BERLIN (Hypnotic, Minimal, Dub Techno, Warehouse, Peak Time),
+- **Styles** in ten families (the STYLE list has them as submenus; the field shows family and style): DETROIT (Classic, Soul), BERLIN (Hypnotic, Minimal, Dub Techno, Warehouse, Peak Time),
   ACID (Acid Techno, Acid House), HARD (Hard Techno, Industrial, Schranz), MELODIC (Melodic Techno, Progressive House),
   HOUSE (Tech House, Deep House, Chicago House), TRANCE (Trance, Progressive Trance, Psytrance), ELECTRO (Electro,
-  Breaks). Every style has its own harmony: STATIC (one chord), MODAL (two chords) or PROGRESSION (a chord every bar).
+  Breaks), BASS (Dubstep, Riddim, Drum & Bass, Liquid DnB, Neurofunk, Jungle, Halftime), GARAGE (UK Garage, 2-Step,
+  Speed Garage, Bassline, Future Garage). Every style has its own harmony: STATIC (one chord), MODAL (two chords) or PROGRESSION (a chord every bar).
 - **KEY and SCALE**: SCALE is AUTO (the style's) or MINOR, DORIAN, PHRYGIAN, MAJOR, HARM. MINOR, MIXOLYDIAN, LYDIAN; a new
   scale keeps the rhythm, every note keeps its degree (locked tracks stay).
+- **FEEL**: AUTO (the style's), FULL (backbeat on 2 and 4) or HALF (on 3, half-time); a new feel makes new drums
+  (not when DRUMS is locked). New drum types HALF-TIME, DNB TWO-STEP, AMEN CHOPS, UK 2-STEP; bass types WOBBLE, REESE,
+  BASSLINE. SWING goes up to 66 % (garage).
 - **Five tracks**: DRUMS (8 voices in GENRA's order: kick, snare, clap, rim, closed hat, open hat, tom, perc), BASS,
   STAB (poly 4), LEAD and ATMO (poly 4). Per track: a TYPE (e.g. ACID 303, DUB CHORD, HYPNO LOOP), DENS, a flavour
   knob (GROOVE, ACID, DUB, LOOP, MOVE), LEN (the track's own loop length in 16ths: polymeter), NEW, LOCK and MUTE.

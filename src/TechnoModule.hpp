@@ -88,6 +88,7 @@ struct GenraTechno : Module {
 	tg::Pattern pat;
 	int style = 2, key = 9, forcedBuild = tg::B_AUTO;
 	int scaleSel = -1; // -1: the style's scale
+	int feelSel = -1;  // -1: the style's feel (FULL / HALF)
 	int typeSel[tg::NUM_TRACKS] = {-1, -1, -1, -1, -1}; // -1: the style's
 	bool lock[tg::NUM_TRACKS] = {}, mute[tg::NUM_TRACKS] = {};
 	std::atomic<int> solo{-1}; // GRID's SOLO: only this track
@@ -136,7 +137,7 @@ struct GenraTechno : Module {
 	// tempo, swing). REDO (GRID) goes the other way.
 	struct UndoState {
 		tg::Pattern pat;
-		int style = 2, key = 9, scaleSel = -1;
+		int style = 2, key = 9, scaleSel = -1, feelSel = -1;
 		int typeSel[tg::NUM_TRACKS] = {};
 		float bpm = 132.f, swing = 51.f;
 	};
@@ -226,6 +227,7 @@ struct GenraTechno : Module {
 	float bpm();
 	int effectiveType(int t) { return typeSel[t] >= 0 ? typeSel[t] : tg::styleType(style, t); }
 	int effectiveScale() { return scaleSel >= 0 ? scaleSel : tg::styles()[style].mode; }
+	int effectiveFeel() { return feelSel >= 0 ? feelSel : tg::styles()[style].feel; }
 	/** UI: instruments that follow track t of this GENRA TECHNO load a preset for the style (Presets follow GENRA). */
 	int rollPresets(int t);
 };

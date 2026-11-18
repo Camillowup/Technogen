@@ -93,7 +93,7 @@ void TechnoLink::fromJson(json_t* root) {
 GenraTechno::GenraTechno() {
 	config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 	configParam(BPM_PARAM, 60.f, 200.f, 132.f, "Tempo", " BPM");
-	configParam(SWING_PARAM, 50.f, 62.f, 51.f, "Swing", " %");
+	configParam(SWING_PARAM, 50.f, 66.f, 51.f, "Swing", " %");
 	configParam(ENERGY_PARAM, 0.f, 1.f, 0.6f, "Energy", " %", 0.f, 100.f);
 	configParam(EVOLVE_PARAM, 0.f, 1.f, 0.2f, "Evolve (a small change every 8 bars)", " %", 0.f, 100.f);
 	configParam(LENGTH_PARAM, 2.f, 12.f, 6.f, "Song length (LIVE)", " min");
@@ -165,6 +165,7 @@ void GenraTechno::onReset(const ResetEvent& e) {
 	style = 2;
 	key = 9;
 	scaleSel = -1;
+	feelSel = -1;
 	liveDj = false;
 	forcedBuild = B_AUTO;
 	for (int t = 0; t < NUM_TRACKS; t++) {
@@ -183,6 +184,7 @@ GenraTechno::UndoState GenraTechno::snapshot() {
 	s.style = style;
 	s.key = key;
 	s.scaleSel = scaleSel;
+	s.feelSel = feelSel;
 	for (int t = 0; t < NUM_TRACKS; t++)
 		s.typeSel[t] = typeSel[t];
 	s.bpm = params[BPM_PARAM].getValue();
@@ -194,6 +196,7 @@ void GenraTechno::restore(const UndoState& s) {
 	style = s.style;
 	key = s.key;
 	scaleSel = s.scaleSel;
+	feelSel = s.feelSel;
 	for (int t = 0; t < NUM_TRACKS; t++)
 		typeSel[t] = s.typeSel[t];
 	params[BPM_PARAM].setValue(s.bpm);
@@ -247,6 +250,7 @@ GenSettings GenraTechno::settings() {
 		g.type[t] = typeSel[t];
 	}
 	g.mode = scaleSel;
+	g.feel = feelSel;
 	return g;
 }
 
@@ -924,6 +928,7 @@ json_t* GenraTechno::dataToJson() {
 	json_object_set_new(root, "style", json_integer(style));
 	json_object_set_new(root, "key", json_integer(key));
 	json_object_set_new(root, "scale", json_integer(scaleSel));
+	json_object_set_new(root, "feel", json_integer(feelSel));
 	json_object_set_new(root, "runGate", json_boolean(runGate));
 	json_object_set_new(root, "build", json_integer(forcedBuild));
 	json_object_set_new(root, "seed", json_integer(songSeed));
@@ -948,6 +953,9 @@ void GenraTechno::dataFromJson(json_t* root) {
 		key = clamp((int) json_integer_value(j), 0, 11);
 	if (json_t* j = json_object_get(root, "scale"))
 		scaleSel = clamp((int) json_integer_value(j), -1, NUM_SCALES - 1);
+	feelSel = -1;
+	if (json_t* j = json_object_get(root, "feel"))
+		feelSel = clamp((int) json_integer_value(j), -1, NUM_FEELS - 1);
 	runGate = json_is_true(json_object_get(root, "runGate"));
 	if (json_t* j = json_object_get(root, "build"))
 		forcedBuild = clamp((int) json_integer_value(j), 0, NUM_BUILDS - 1);
@@ -1107,6 +1115,19 @@ struct GenraTechnoWidget : ModuleWidget {
 		changeScale(p, gm->effectiveScale(), gm->lock);
 		gm->post(p, true);
 		gm->userEdit(p);
+	}
+	/** FEEL: FULL (backbeat on 2 and 4) or HALF (on 3); new drums in it (unless DRUMS is locked). */
+	void setFeel(int sel) {
+		if (!gm || sel == gm->feelSel)
+			return;
+		if (gm->lock[T_DRUMS]) {
+			gm->feelSel = sel;
+			say("DRUMS LOCKED: THE FEEL WITH THE NEXT NEW");
+			return;
+		}
+		pushUndo();
+		gm->feelSel = sel;
+		regenerate(T_DRUMS, false);
 	}
 	/** byHand: MUTATE (an edit, ABLAUF keeps it on the pad); else EVOLVE (the song's own movement). */
 	void mutateTracks(int mask, float amount, bool byHand = false) {
@@ -1292,24 +1313,18 @@ struct GenraTechnoWidget : ModuleWidget {
 				say("NOTHING TO UNDO");
 		};
 		// fields
-		TField* fam = place<TField>(this, L::F_FAMILY);
-		fam->prefix = "FAMILY";
-		fam->value = [=]() { return gm ? std::string(FAMILY_NAMES[styles()[gm->style].family]) : std::string("BERLIN"); };
-		fam->count = []() { return (int) NUM_FAMILIES; };
-		fam->current = [=]() { return gm ? styles()[gm->style].family : 1; };
-		fam->item = [](int i) { return std::string(FAMILY_NAMES[i]); };
-		fam->choose = [=](int i) {
-			std::vector<int> s = stylesOf(i);
-			if (!s.empty())
-				setStyle(s[0]);
-		};
+		// STYLE shows the family too (the list has the families as headings, the wheel goes on into the next one)
 		TField* sty = place<TField>(this, L::F_STYLE);
 		sty->prefix = "STYLE";
-		sty->value = [=]() { return std::string(styles()[gm ? gm->style : 2].name); };
+		sty->value = [=]() {
+			const Style& s = styles()[gm ? gm->style : 2];
+			return std::string(FAMILY_NAMES[s.family]) + " · " + s.name;
+		};
 		sty->count = []() { return numStyles(); };
 		sty->current = [=]() { return gm ? gm->style : 2; };
-		sty->item = [](int i) { return std::string(FAMILY_NAMES[styles()[i].family]) + " › " + styles()[i].name; };
-		sty->separatorBefore = [](int i) { return i > 0 && styles()[i].family != styles()[i - 1].family; };
+		sty->fit = true;
+		sty->item = [](int i) { return string::f("%s   %.0f BPM", styles()[i].name, styles()[i].bpm); };
+		sty->groupOf = [](int i) { return std::string(FAMILY_NAMES[styles()[i].family]); };
 		sty->choose = [=](int i) { setStyle(i); };
 		TField* ky = place<TField>(this, L::F_KEY);
 		ky->prefix = "KEY";
@@ -1335,6 +1350,23 @@ struct GenraTechnoWidget : ModuleWidget {
 			return std::string(SCALES[i - 1].name);
 		};
 		sc->choose = [=](int i) { setScale(i - 1); };
+		TField* fe = place<TField>(this, L::F_FEEL);
+		fe->prefix = "FEEL";
+		fe->col = nvgRGB(0x3d, 0xc9, 0xff);
+		fe->value = [=]() {
+			if (!gm)
+				return std::string("AUTO");
+			std::string n = FEEL_NAMES[gm->effectiveFeel()];
+			return gm->feelSel < 0 ? "AUTO · " + n : n;
+		};
+		fe->count = []() { return (int) NUM_FEELS + 1; };
+		fe->current = [=]() { return gm ? gm->feelSel + 1 : 0; };
+		fe->item = [=](int i) {
+			if (i == 0)
+				return std::string("AUTO (the style's: ") + FEEL_NAMES[styles()[gm ? gm->style : 2].feel] + ")";
+			return std::string(i == 1 ? "FULL (backbeat on 2 and 4)" : "HALF (backbeat on 3)");
+		};
+		fe->choose = [=](int i) { setFeel(i - 1); };
 		TField* bu = place<TField>(this, L::F_BUILD);
 		bu->prefix = "BUILD";
 		bu->col = YEL;

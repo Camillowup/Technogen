@@ -10,7 +10,8 @@ namespace tg {
 const char* const TRACK_NAMES[NUM_TRACKS] = {"DRUMS", "BASS", "STAB", "LEAD", "ATMO"};
 const char* const DRUM_NAMES[DRUMS] = {"Kick", "Snare", "Clap", "Rim", "Closed hat", "Open hat", "Tom", "Perc"};
 const char* const DRUM_SHORT[DRUMS] = {"KICK", "SNR", "CLAP", "RIM", "CH", "OH", "TOM", "PERC"};
-const char* const FAMILY_NAMES[NUM_FAMILIES] = {"DETROIT", "BERLIN", "ACID", "HARD", "MELODIC", "HOUSE", "TRANCE", "ELECTRO"};
+const char* const FAMILY_NAMES[NUM_FAMILIES] = {"DETROIT", "BERLIN", "ACID", "HARD", "MELODIC", "HOUSE", "TRANCE", "ELECTRO", "BASS", "GARAGE"};
+const char* const FEEL_NAMES[NUM_FEELS] = {"FULL", "HALF"};
 const char* const HARMONY_NAMES[3] = {"STATIC", "MODAL", "PROGRESSION"};
 const char* const BUILD_NAMES[NUM_BUILDS] = {"AUTO",  "SNARE ROLL", "KICK",  "HAT ROLL", "ARP",  "STUTTER",
                                              "STRIP", "POLY",       "CUT",   "NONE",     "FAKE"};
@@ -83,6 +84,19 @@ static const std::vector<Style> STYLES = {
     {"PSYTRANCE", F_TRANCE, 142, 50, 2, H_STATIC, K_FOUR, B_GALLOP, S_NONE, L_ACID, A_HIGH, .8f, .5f, true, false, {BT_STUTTER, BT_SNARE, BT_KICK, BT_CUT}, true, 16, 16},
     {"ELECTRO", F_ELECTRO, 128, 52, 0, H_MODAL, K_BROKEN, B_FUNK, S_ONE, L_LOOP, A_HIGH, .6f, .5f, false, false, {BT_STUTTER, BT_CUT, BT_SNARE, BT_POLY}, true, 16, 16},
     {"BREAKS", F_ELECTRO, 132, 54, 0, H_MODAL, K_BREAKS, B_FUNK, S_CHORD, L_NONE, A_PAD, .7f, .4f, false, true, {BT_SNARE, BT_CUT, BT_STRIP, BT_HATS}, true, 16, 16},
+    // 2.0.6: half-time and breakbeat (BASS), UK garage with a lot of swing (GARAGE); always appended, patches keep the index
+    {"DUBSTEP", F_BASS, 140, 50, 0, H_STATIC, K_HALF, B_WOBBLE, S_ONE, L_NONE, A_DRONE, .4f, .3f, false, false, {BT_SNARE, BT_CUT, BT_FAKE, BT_STUTTER}, false, 16, 16, FEEL_HALF},
+    {"RIDDIM", F_BASS, 140, 50, 2, H_STATIC, K_HALF, B_WOBBLE, S_NONE, L_NONE, A_HIGH, .3f, .2f, false, false, {BT_CUT, BT_SNARE, BT_STUTTER, BT_NONE}, false, 16, 16, FEEL_HALF},
+    {"DRUM & BASS", F_BASS, 174, 50, 0, H_MODAL, K_DNB, B_REESE, S_ONE, L_LOOP, A_PAD, .8f, .5f, false, false, {BT_SNARE, BT_HATS, BT_CUT, BT_FAKE}, false, 16, 16, FEEL_FULL},
+    {"LIQUID DNB", F_BASS, 172, 52, 1, H_PROG, K_DNB, B_LONG, S_CHORD, L_MOTIF, A_PAD, .7f, .5f, false, true, {BT_STRIP, BT_SNARE, BT_ARP, BT_NONE}, false, 16, 32, FEEL_FULL},
+    {"NEUROFUNK", F_BASS, 174, 50, 2, H_STATIC, K_DNB, B_REESE, S_NONE, L_NONE, A_DRONE, .8f, .6f, false, false, {BT_STUTTER, BT_CUT, BT_SNARE, BT_KICK}, false, 16, 16, FEEL_FULL},
+    {"JUNGLE", F_BASS, 165, 52, 0, H_MODAL, K_AMEN, B_LONG, S_DUB, L_NONE, A_PAD, .7f, .6f, false, false, {BT_SNARE, BT_CUT, BT_STUTTER, BT_HATS}, false, 16, 16, FEEL_FULL},
+    {"HALFTIME", F_BASS, 170, 50, 0, H_STATIC, K_HALF, B_REESE, S_NONE, L_LOOP, A_DRONE, .6f, .4f, false, false, {BT_CUT, BT_SNARE, BT_STUTTER, BT_STRIP}, true, 16, 16, FEEL_HALF},
+    {"UK GARAGE", F_GARAGE, 132, 62, 1, H_PROG, K_TWOSTEP, B_FUNK, S_CHORD, L_NONE, A_PAD, .7f, .6f, true, true, {BT_SNARE, BT_STRIP, BT_CUT, BT_HATS}, true, 16, 16, FEEL_FULL},
+    {"2-STEP", F_GARAGE, 134, 63, 1, H_PROG, K_TWOSTEP, B_FUNK, S_PLUCK, L_MOTIF, A_PAD, .6f, .5f, true, true, {BT_STRIP, BT_SNARE, BT_CUT, BT_NONE}, true, 16, 16, FEEL_FULL},
+    {"SPEED GARAGE", F_GARAGE, 135, 58, 0, H_MODAL, K_FOUR, B_OFFBEAT, S_ONE, L_NONE, A_HIGH, .8f, .5f, true, false, {BT_SNARE, BT_CUT, BT_HATS, BT_STUTTER}, true, 16, 16, FEEL_FULL},
+    {"BASSLINE", F_GARAGE, 138, 56, 0, H_MODAL, K_FOUR, B_BOUNCE, S_ONE, L_NONE, A_HIGH, .7f, .5f, true, false, {BT_SNARE, BT_STUTTER, BT_CUT, BT_HATS}, true, 16, 16, FEEL_FULL},
+    {"FUTURE GARAGE", F_GARAGE, 130, 60, 0, H_PROG, K_TWOSTEP, B_LONG, S_DUB, L_NONE, A_PAD, .5f, .4f, false, true, {BT_STRIP, BT_NONE, BT_CUT, BT_SNARE}, false, 16, 16, FEEL_FULL},
 };
 
 const std::vector<Style>& styles() { return STYLES; }
@@ -96,13 +110,13 @@ std::vector<int> stylesOf(int family) {
 }
 static const Style& st(int i) { return STYLES[std::max(0, std::min(numStyles() - 1, i))]; }
 
-static const char* const TYPES_DRUMS[] = {"FOUR ON FLOOR", "ROLLING 4/4", "BROKEN", "BREAKBEAT"};
-static const char* const TYPES_BASS[] = {"OFFBEAT", "ROLLING", "ACID 303", "FUNK", "LONG", "GALLOP"};
+static const char* const TYPES_DRUMS[] = {"FOUR ON FLOOR", "ROLLING 4/4", "BROKEN", "BREAKBEAT", "HALF-TIME", "DNB TWO-STEP", "AMEN CHOPS", "UK 2-STEP"};
+static const char* const TYPES_BASS[] = {"OFFBEAT", "ROLLING", "ACID 303", "FUNK", "LONG", "GALLOP", "WOBBLE", "REESE", "BASSLINE"};
 static const char* const TYPES_STAB[] = {"OFF", "DUB CHORD", "CHORD", "ONE NOTE", "PLUCK"};
 static const char* const TYPES_LEAD[] = {"OFF", "HYPNO LOOP", "ARP", "MOTIF", "ACID"};
 static const char* const TYPES_ATMO[] = {"DRONE", "PAD", "HIGH DRONE"};
 int typeCount(int t) {
-	static const int n[NUM_TRACKS] = {4, 6, 5, 5, 3};
+	static const int n[NUM_TRACKS] = {8, 9, 5, 5, 3};
 	return t >= 0 && t < NUM_TRACKS ? n[t] : 0;
 }
 const char* typeName(int t, int i) {
@@ -127,6 +141,7 @@ int styleType(int style, int t) {
 	}
 }
 static int typeOf(const GenSettings& g, int t) { return g.type[t] >= 0 ? g.type[t] : styleType(g.style, t); }
+int feelOf(const GenSettings& g) { return g.feel >= 0 && g.feel < NUM_FEELS ? g.feel : st(g.style).feel; }
 
 // ------------------------------------------------------------------ harmony
 static int scaleNote(int mode, int key, int degree, int baseOct) {
@@ -322,6 +337,42 @@ static void genDrums(Pattern& p, const GenSettings& g, Rng& r) {
 				if (t[k] >= 0)
 					put(D_KICK, o + t[k], k ? 105 : 122);
 		}
+		else if (type == K_HALF) { // half-time: the kick on the one, a few late ones, never with the snare
+			put(D_KICK, o, 124);
+			if (r.chance(0.35f + 0.4f * dens))
+				put(D_KICK, o + (r.chance(0.5f) ? 10 : 11), 108);
+			if ((b & 1) && r.chance(0.4f * dens))
+				put(D_KICK, o + 14, 96);
+		}
+		else if (type == K_DNB) { // the two-step: kick on 1 and the and of 3, the snare on 2 and 4
+			put(D_KICK, o, 124);
+			put(D_KICK, o + 10, 114);
+			if ((b & 1) && r.chance(0.5f))
+				put(D_KICK, o + (r.chance(0.5f) ? 11 : 7), 100);
+		}
+		else if (type == K_AMEN) { // amen-like: the kicks of the break, the cells chopped in bars 2 and 4
+			static const int amenK[16] = {1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0};
+			static const int amenS[16] = {0, 0, 0, 0, 2, 0, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1}; // 2 snare, 1 ghost
+			int cell[4] = {0, 1, 2, 3};
+			if (b & 1)
+				for (int c = 0; c < 4; c++)
+					if (r.chance(0.3f + 0.3f * groove))
+						cell[c] = r.range(4);
+			for (int c = 0; c < 4; c++)
+				for (int k = 0; k < 4; k++) {
+					int from = cell[c] * 4 + k, to = o + c * 4 + k;
+					if (amenK[from])
+						put(D_KICK, to, from == 0 ? 122 : 108);
+					if (amenS[from])
+						put(D_SNARE, to, amenS[from] == 2 ? 116 : 52 + r.range(20));
+				}
+		}
+		else if (type == K_TWOSTEP) { // 2-step: kick on 1, skipping the 2 and the 4, a late one in the bar
+			put(D_KICK, o, 122);
+			put(D_KICK, o + (r.chance(0.6f) ? 10 : 9), 110);
+			if ((b & 1) && r.chance(0.3f + 0.4f * dens))
+				put(D_KICK, o + (r.chance(0.5f) ? 7 : 14), 92);
+		}
 		else { // breaks
 			put(D_KICK, o, 122);
 			put(D_KICK, o + 10, 110);
@@ -329,10 +380,29 @@ static void genDrums(Pattern& p, const GenSettings& g, Rng& r) {
 				put(D_KICK, o + 7, 96);
 		}
 	}
+	// HALF: the backbeat on the 3 (no kick there), FULL: on 2 and 4
+	bool half = feelOf(g) == FEEL_HALF;
+	if (half)
+		for (int b = 0; b < 4; b++)
+			p.drum[D_KICK][b * 16 + 8] = Hit();
 	// backbeat
-	bool backSnare = !s.clap && (type == K_BROKEN || type == K_BREAKS || s.family == F_ELECTRO);
+	bool backSnare = !s.clap && (type == K_BROKEN || type == K_BREAKS || type >= K_HALF || s.family == F_ELECTRO ||
+	                             s.family == F_BASS || s.family == F_GARAGE);
 	for (int b = 0; b < 4; b++) {
 		int o = b * 16;
+		if (half) { // one big backbeat on the 3 (clap or snare), a ghost now and then
+			if (type == K_AMEN) // the break's own snares, moved: the 2 and 4 out, the 3 in
+				for (int i : {4, 12})
+					p.drum[D_SNARE][o + i] = Hit();
+			put(s.clap ? D_CLAP : D_SNARE, o + 8, 120 + r.range(7), s.clap ? -3 : 0);
+			if (s.clap && r.chance(0.5f))
+				put(D_SNARE, o + 8, 96);
+			if (r.chance(0.4f * dens))
+				put(D_SNARE, o + (r.chance(0.5f) ? 14 : 11), 42 + r.range(15));
+			continue;
+		}
+		if (type == K_AMEN)
+			continue; // the break has its snares
 		if (s.clap) {
 			put(D_CLAP, o + 4, 108 + r.range(10), -3);
 			put(D_CLAP, o + 12, 110 + r.range(10), -3);
@@ -369,7 +439,9 @@ static void genDrums(Pattern& p, const GenSettings& g, Rng& r) {
 		int q = i % 4;
 		int micro = (int) (groove * (q == 2 ? 10 : 6)) + r.range(3) - 1;
 		if (q == 2) {
-			bool oh = type != K_BREAKS || (i % 16) == 14;
+			bool oh = (type != K_BREAKS && type < K_HALF) || (i % 16) == 14;
+			if (type == K_TWOSTEP)
+				oh = (i % 8) == 6 || r.chance(0.3f); // garage: the open hat on the and, shuffled
 			if (s.family == F_BERLIN && s.harmony == H_MODAL && (i / 4) % 2 == 0)
 				oh = false; // dub: fewer open hats
 			if (oh)
@@ -554,6 +626,45 @@ static void genBass(Pattern& p, const GenSettings& g, Rng& r) {
 			setNote(m[o + (r.chance(0.5f) ? 2 : 3)], root, 6, 100);
 			setNote(m[o + 10], root + (r.chance(0.25f * fl) ? fifth : 0), 4, 90);
 			break;
+		case B_WOBBLE: { // dubstep: held notes cut into wobbles (ratchets), a gap now and then for the snare
+			static const int seg[4][5] = {{0, 3, 6, 10, 13}, {0, 4, 6, 11, 14}, {0, 2, 6, 10, 12}, {0, 3, 7, 10, 14}};
+			const int* t = seg[(b == 3) ? r.range(4) : (int) (p.seed % 4)];
+			int ivs[5] = {0, 0, oct, b7, fifth};
+			for (int k = 0; k < 5; k++) {
+				int a = t[k], e = k < 4 ? t[k + 1] : 16;
+				if (k > 0 && !r.chance(0.55f + 0.45f * dens))
+					continue;
+				if (a <= 8 && e > 8 && r.chance(0.4f)) // room for the half-time snare
+					e = 8;
+				// the wobble: the note again every 8th or 16th, accented on the first (the filter of the bass opens on it)
+				int rate = r.chance(0.35f + 0.4f * fl) ? 1 : 2, pitch = root + (k ? ivs[r.range(5)] : 0);
+				for (int i = a; i < e; i += rate)
+					setNote(m[o + i], pitch, rate, i == a ? 122 : 84 + r.range(14), i == a, i > a);
+			}
+			break;
+		}
+		case B_REESE: { // a long, dark note held over the bar, gliding to the next
+			int a = r.chance(0.7f) ? 0 : 2;
+			int split = r.chance(0.5f) ? 8 : 10;
+			setNote(m[o + a], root, split - a, 104, false, true);
+			int iv = r.chance(0.3f + 0.3f * fl) ? (r.chance(0.5f) ? b7 : (p.mode == 2 ? 1 : m3)) : 0;
+			setNote(m[o + split], root + iv, 16 - split, 96, false, b < 3);
+			if (dens > 0.6f && r.chance(dens - 0.4f))
+				setNote(m[o + 14], root + oct, 2, 90, true);
+			break;
+		}
+		case B_BOUNCE: { // bassline: offbeat 8ths bouncing between root and octave, pick-ups with slides
+			for (int q = 0; q < 4; q++) {
+				int i = o + q * 4 + 2;
+				bool up = (q & 1) == 1 || r.chance(0.2f * fl);
+				setNote(m[i], root + (up ? oct : 0), 1, up ? 118 : 100, up);
+				if (r.chance(0.3f + 0.5f * dens))
+					setNote(m[i + 1], root + (up ? 0 : oct), 1, 88, false, r.chance(0.4f + 0.4f * fl));
+			}
+			if (b == 3 && r.chance(0.5f))
+				setNote(m[o + 15], root + (r.chance(0.5f) ? fifth : b7), 1, 104, true, true);
+			break;
+		}
 		}
 	}
 }
@@ -569,15 +680,17 @@ static float scoreBass(const Pattern& p, const GenSettings& g) {
 		if (p.drum[D_KICK][i].vel > 100)
 			clash++;
 	}
-	float sc = -clash * (type == B_ACID ? 0.4f : 2.f);
+	float sc = -clash * (type == B_ACID || type == B_WOBBLE || type == B_REESE ? 0.4f : 2.f);
 	// repetition: bar 1 and bar 2 mostly the same
 	int same = 0;
 	for (int i = 0; i < 16; i++)
 		same += (m[i].on > 0) == (m[16 + i].on > 0);
 	sc += same / 8.f;
 	float target = 64 * (0.15f + 0.45f * g.dens[T_BASS]);
-	if (type == B_LONG)
+	if (type == B_LONG || type == B_REESE)
 		target = 8;
+	if (type == B_WOBBLE)
+		target = 14;
 	sc -= std::fabs(notes - target) / 10.f;
 	return sc;
 }
@@ -922,6 +1035,9 @@ std::vector<Section> planSong(int style, float minutes, float bpm, uint32_t seed
 	else if (s.family == F_MELODIC || s.family == F_TRANCE)
 		tpl = {{P_INTRO, 32, 0}, {P_GROOVE, 16, 1}, {P_BUILD, 8, 0}, {P_DROP, 32, 1},
 		       {P_BREAK, 32, 0}, {P_BUILD, 16, 0}, {P_DROP, 32, 1}, {P_OUTRO, 32, 0}};
+	else if (s.family == F_BASS)
+		tpl = {{P_INTRO, 32, 0}, {P_BUILD, 8, 0}, {P_DROP, 32, 1}, {P_BREAK, 32, 0},
+		       {P_BUILD, 8, 0}, {P_DROP, 32, 1}, {P_GROOVE, 16, 1}, {P_OUTRO, 32, 0}};
 	else if (s.family == F_HARD)
 		tpl = {{P_INTRO, 16, 0}, {P_GROOVE, 32, 1}, {P_BUILD, 8, 0}, {P_DROP, 32, 1},
 		       {P_BREAK, 8, 0}, {P_BUILD, 8, 0}, {P_DROP, 32, 1}, {P_OUTRO, 16, 0}};
