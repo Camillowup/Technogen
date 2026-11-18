@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.5 (18 Nov 2026, test build, no release)
+
+- MOD: the table is turned. Columns are the song's sections (from ABLAUF or the LIVE song), rows the lanes A–D. A cell
+  takes its part's movement unless set for that one section (marked). New movements IN, IN SEC and IN × SEC; jacks IN A–D
+  beside the rows and ten section jacks (INTRO, GROOVE 1/2, BUILD 1/2, DROP 1/2, BREAK 1/2, OUTRO), named bright when
+  the song has the section, grey and struck out when not. Click: the list; wheel: next; wheel on the head: more sections.
+  The display draws what comes in from outside. Outputs on the right, PART is now PART OUT.
+- ABLAUF: a timeline of the song over the whole width; the selected row is framed, a click picks a row. ROW CV 0–10 V
+  spans all the rows (shown by the frame). RST while stopped goes back to the first row.
+- GENRA TECHNO: MAIN and LIVE SONG under STOP and PLAY. KEY and SCALE show the pattern that plays.
+- RUN can be a gate (right-click), on GENRA TECHNO and ABLAUF.
+- A pattern sent while one pad plays does not land on the next one. In PATT mode edits go onto the pad loaded last.
+- A link to a GENRA TECHNO that is gone falls back to the first one; the LINK light is orange then.
+- Patterns from older (smaller) saves load instead of being dropped.
+
 ## 2.0.4 (18 Nov 2026, test build, no release)
 
 - ABLAUF: a **TRANSPORT** section beside the jacks RUN, RST and NEXT: PATT / SONG, PLAY, STOP, LOOP. The SONG section

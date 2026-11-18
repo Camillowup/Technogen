@@ -56,6 +56,10 @@ void TechnoLink::uiStep(float dt) {
 			want = g;
 			break;
 		}
+	// the one picked is gone (deleted, or a patch from elsewhere): the first there is, and say so
+	fellBack = !want && wantId >= 0 && !all.empty();
+	if (fellBack)
+		want = all.front();
 	if (want != main.load())
 		main.store(want);
 }
@@ -107,7 +111,7 @@ GenraTechno::GenraTechno() {
 	}
 	configInput(CLK_INPUT, "Clock (16ths)");
 	configInput(RST_INPUT, "Reset");
-	configInput(RUN_INPUT, "Run (trigger: start / stop)");
+	configInput(RUN_INPUT, "Run (trigger: start / stop; a gate in the right-click menu)");
 	configInput(NEW_INPUT, "NEW ALL (trigger)");
 	configInput(BUILD_INPUT, "BUILD (trigger)");
 	configInput(DROP_INPUT, "DROP (trigger)");
@@ -249,6 +253,7 @@ GenSettings GenraTechno::settings() {
 void GenraTechno::post(const Pattern& p, bool now) {
 	Pattern* q = new Pattern(p);
 	incomingNow = now;
+	incomingPad = pubPad.load();
 	delete incoming.exchange(q);
 }
 
@@ -518,9 +523,10 @@ void GenraTechno::tick(float sr) {
 				}
 			}
 		}
-		// a new pattern at the start of a bar
+		// a new pattern at the start of a bar, unless the song moved on to another pad meanwhile
 		if (Pattern* q = incoming.exchange(nullptr)) {
-			pat = *q;
+			if (incomingPad.load() == pubPad.load())
+				pat = *q;
 			delete spent.exchange(q);
 		}
 		barPulse.trigger(1e-3f);
@@ -641,14 +647,29 @@ void GenraTechno::fireStep(float sr) {
 void GenraTechno::process(const ProcessArgs& args) {
 	float sr = args.sampleRate;
 	// ---- transport
-	if (runTrig.process(inputs[RUN_INPUT].getVoltage(), 0.1f, 1.f)) {
+	bool runEdge = runTrig.process(inputs[RUN_INPUT].getVoltage(), 0.1f, 1.f);
+	if (runGate) {
+		bool high = runTrig.isHigh();
+		if (high != runHigh) {
+			if (high && !running)
+				runReq = true;
+			else if (!high && running)
+				stopReq = true;
+		}
+		runHigh = high;
+	}
+	else if (runEdge) {
 		if (running)
 			stopReq = true;
 		else
 			runReq = true;
 	}
-	if (rstTrig.process(inputs[RST_INPUT].getVoltage(), 0.1f, 1.f) && running)
-		startRow = 0;
+	if (rstTrig.process(inputs[RST_INPUT].getVoltage(), 0.1f, 1.f)) {
+		if (running)
+			startRow = 0;
+		else
+			rstStopped = true;
+	}
 	if (newTrig.process(inputs[NEW_INPUT].getVoltage(), 0.1f, 1.f))
 		newReq |= 1 << 5;
 	if (buildTrig.process(inputs[BUILD_INPUT].getVoltage(), 0.1f, 1.f))
@@ -903,6 +924,7 @@ json_t* GenraTechno::dataToJson() {
 	json_object_set_new(root, "style", json_integer(style));
 	json_object_set_new(root, "key", json_integer(key));
 	json_object_set_new(root, "scale", json_integer(scaleSel));
+	json_object_set_new(root, "runGate", json_boolean(runGate));
 	json_object_set_new(root, "build", json_integer(forcedBuild));
 	json_object_set_new(root, "seed", json_integer(songSeed));
 	json_object_set_new(root, "main", json_boolean(mainMode.load()));
@@ -926,6 +948,7 @@ void GenraTechno::dataFromJson(json_t* root) {
 		key = clamp((int) json_integer_value(j), 0, 11);
 	if (json_t* j = json_object_get(root, "scale"))
 		scaleSel = clamp((int) json_integer_value(j), -1, NUM_SCALES - 1);
+	runGate = json_is_true(json_object_get(root, "runGate"));
 	if (json_t* j = json_object_get(root, "build"))
 		forcedBuild = clamp((int) json_integer_value(j), 0, NUM_BUILDS - 1);
 	if (json_t* j = json_object_get(root, "seed"))
@@ -942,9 +965,9 @@ void GenraTechno::dataFromJson(json_t* root) {
 		}
 	if (json_t* j = json_object_get(root, "pattern")) {
 		std::vector<uint8_t> b = string::fromBase64(json_string_value(j));
-		if (b.size() == sizeof(Pattern)) {
+		if (b.size() >= sizeof(Pattern) / 2) { // an older (smaller) or newer pattern: what fits, the rest as new
 			Pattern p;
-			std::memcpy((void*) &p, b.data(), sizeof(Pattern));
+			std::memcpy((void*) &p, b.data(), std::min(b.size(), sizeof(Pattern)));
 			post(p, true);
 			pat = p;
 		}
@@ -955,6 +978,7 @@ void GenraTechno::dataFromJson(json_t* root) {
 // ================================================================ the panel
 struct GenraTechnoWidget : ModuleWidget {
 	GenraTechno* gm = nullptr;
+	int seenKey = -1, seenMode = -1; // the playing pattern's key and scale, last seen
 	float lastLen[NUM_TRACKS] = {-1, -1, -1, -1, -1};
 	int origLen[NUM_TRACKS] = {0, 0, 0, 0, 0}; // a track's loop length before its LEN knob took over (0: not known)
 	float lastLength = -1.f, lastBpm = -1.f;
@@ -1536,6 +1560,19 @@ struct GenraTechnoWidget : ModuleWidget {
 		if (flashT > 0.f)
 			flashT -= dt;
 		delete gm->spent.exchange(nullptr);
+		// KEY and SCALE show the pattern that plays (an ABLAUF pad may be in another key)
+		{
+			int k = gm->pat.key % 12, m = gm->pat.mode;
+			if (k != seenKey || m != seenMode) {
+				if (seenKey >= 0) {
+					gm->key = k;
+					if (m != gm->effectiveScale() && m < NUM_SCALES)
+						gm->scaleSel = m == styles()[gm->style].mode ? -1 : m;
+				}
+				seenKey = k;
+				seenMode = m;
+			}
+		}
 		int nr = gm->newReq.exchange(0);
 		if (nr) {
 			if (nr & (1 << 5))
@@ -1592,6 +1629,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		if (!gm)
 			return;
 		menu->addChild(new MenuSeparator);
+		menu->addChild(createBoolPtrMenuItem("RUN as gate (runs while high)", "", &gm->runGate));
 		menu->addChild(createMenuItem("Export the pattern as MIDI", "", [=]() {
 			std::vector<const Pattern*> ps = {&gm->pat};
 			std::vector<uint8_t> d = songMidi(ps, std::vector<Section>(), gm->bpm(), gm->params[GenraTechno::ENERGY_PARAM].getValue(), false);

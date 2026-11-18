@@ -797,7 +797,7 @@ struct TechnoGridWidget : ModuleWidget {
 			bool on = gm() != nullptr;
 			nvgBeginPath(a.vg);
 			nvgCircle(a.vg, 6, ln->box.size.y / 2, 3.5f);
-			nvgFillColor(a.vg, on ? GREEN : nvgRGB(0x44, 0x46, 0x50));
+			nvgFillColor(a.vg, on ? (mod && mod->link.fellBack ? nvgRGB(0xff, 0xa0, 0x30) : GREEN) : nvgRGB(0x44, 0x46, 0x50));
 			nvgFill(a.vg);
 			text(a.vg, bold(), 14, ln->box.size.y / 2, on ? "LINK › GENRA TECHNO" : "NO LINK", 8.f, on ? TXT : DIM);
 		};

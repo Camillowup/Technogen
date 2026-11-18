@@ -42,7 +42,11 @@ struct TechnoAblauf : Module {
 	int bank = 0, selRow = 0, lastPad = -1, form = 0;
 	bool dj = true, loop = false;
 	std::atomic<bool> dirty{true};
-	std::atomic<int> padCvReq{-1}, rowCvReq{-1};
+	std::atomic<int> padCvReq{-1};
+	std::atomic<float> rowCv{-1.f};      // ROW CV as 0..1 over the rows there are (-1: unplugged)
+	std::atomic<bool> rstStopped{false}; // RST while stopped: back to the first row
+	bool runGate = false;                // RUN: a gate (runs while high) instead of a trigger (start / stop)
+	bool runHigh = false;
 	// audio
 	dsp::SchmittTrigger runTrig, rstTrig, nextTrig;
 	dsp::PulseGenerator endP, rowP, dropP, phraseP;
@@ -60,11 +64,11 @@ struct TechnoAblauf : Module {
 		// Randomize would scramble the selected row: the knobs keep their values
 		for (int i = 0; i < NUM_PARAMS; i++)
 			paramQuantities[i]->randomizeEnabled = false;
-		configInput(RUN_INPUT, "Run (trigger: play / stop the song)");
+		configInput(RUN_INPUT, "Run (trigger: play / stop the song; a gate in the right-click menu)");
 		configInput(RST_INPUT, "Reset (to the first row)");
 		configInput(NEXT_INPUT, "Next row (trigger, at the next bar)");
 		configInput(PADCV_INPUT, "Pad CV (0..10 V: pads 1..64, PATT mode)");
-		configInput(ROWCV_INPUT, "Row CV (0..10 V: selects a row)");
+		configInput(ROWCV_INPUT, "Row CV (0..10 V over all the rows)");
 		configOutput(END_OUTPUT, "End of the song (trigger)");
 		configOutput(ROW_OUTPUT, "New row (trigger)");
 		configOutput(PART_OUTPUT, "Part (0 V intro, 1 groove, 2 build, 3 drop, 4 break, 5 outro)");
@@ -84,14 +88,29 @@ struct TechnoAblauf : Module {
 
 	void process(const ProcessArgs& args) override {
 		GenraTechno* g = link.main.load();
-		if (runTrig.process(inputs[RUN_INPUT].getVoltage(), 0.1f, 1.f) && g) {
+		bool edge = runTrig.process(inputs[RUN_INPUT].getVoltage(), 0.1f, 1.f);
+		if (runGate) {
+			bool high = runTrig.isHigh();
+			if (g && high != runHigh) {
+				if (high && !g->running.load())
+					g->startRow = 0;
+				else if (!high && g->running.load())
+					g->stopReq = true;
+			}
+			runHigh = high;
+		}
+		else if (edge && g) {
 			if (g->running.load())
 				g->stopReq = true;
 			else
 				g->startRow = 0;
 		}
-		if (rstTrig.process(inputs[RST_INPUT].getVoltage(), 0.1f, 1.f) && g && g->running.load())
-			g->startRow = 0;
+		if (rstTrig.process(inputs[RST_INPUT].getVoltage(), 0.1f, 1.f)) {
+			if (g && g->running.load())
+				g->startRow = 0;
+			else
+				rstStopped = true;
+		}
 		if (nextTrig.process(inputs[NEXT_INPUT].getVoltage(), 0.1f, 1.f) && g)
 			g->nextRowReq = true;
 		if (inputs[PADCV_INPUT].isConnected()) {
@@ -100,12 +119,7 @@ struct TechnoAblauf : Module {
 				padCvReq = p;
 			lastPadCv = p;
 		}
-		if (inputs[ROWCV_INPUT].isConnected()) {
-			int r = clamp((int) std::round(inputs[ROWCV_INPUT].getVoltage() * 6.3f), 0, 63);
-			if (r != lastRowCv)
-				rowCvReq = r;
-			lastRowCv = r;
-		}
+		rowCv = inputs[ROWCV_INPUT].isConnected() ? clamp(inputs[ROWCV_INPUT].getVoltage() / 10.f, 0.f, 1.f) : -1.f;
 		if (g && g->running.load()) {
 			int row = g->pubRow.load(), part = g->pubPart.load();
 			if (row != lastRow) {
@@ -144,6 +158,7 @@ struct TechnoAblauf : Module {
 		json_object_set_new(root, "form", json_integer(form));
 		json_object_set_new(root, "dj", json_boolean(dj));
 		json_object_set_new(root, "loop", json_boolean(loop));
+		json_object_set_new(root, "runGate", json_boolean(runGate));
 		json_t* pa = json_array();
 		for (int i = 0; i < 64; i++) {
 			json_t* o = json_object();
@@ -179,6 +194,7 @@ struct TechnoAblauf : Module {
 		form = clamp(geti("form", 0), 0, 5);
 		dj = !json_is_false(json_object_get(root, "dj"));
 		loop = json_is_true(json_object_get(root, "loop"));
+		runGate = json_is_true(json_object_get(root, "runGate"));
 		if (json_t* pa = json_object_get(root, "pads"))
 			for (int i = 0; i < 64 && i < (int) json_array_size(pa); i++) {
 				json_t* o = json_array_get(pa, i);
@@ -187,9 +203,9 @@ struct TechnoAblauf : Module {
 				if (!pj)
 					continue;
 				std::vector<uint8_t> b = string::fromBase64(json_string_value(pj));
-				if (b.size() != sizeof(Pattern))
+				if (b.size() < sizeof(Pattern) / 2) // older (smaller) or newer sizes: what fits, the rest as new
 					continue;
-				std::memcpy((void*) &pads[i].pat, b.data(), sizeof(Pattern));
+				std::memcpy((void*) &pads[i].pat, b.data(), std::min(b.size(), sizeof(Pattern)));
 				pads[i].used = true;
 				if (json_t* n = json_object_get(o, "name"))
 					pads[i].name = json_string_value(n);
@@ -790,6 +806,21 @@ struct TechnoAblaufWidget : ModuleWidget {
 		};
 		slc->wheel = [=](float d) { scroll = std::max(0, scroll + (d > 0 ? -1 : 1)); };
 		addChild(slc);
+		// the song's timeline: every row a block (its part's colour, as wide as its bars); a click picks the row
+		Drawn* tl = place<Drawn>(this, L::DISP_TIME);
+		tl->paintLit = [=](const DrawArgs& a) { drawTime(a.vg, tl->box.size); };
+		Click* tlc = new Click;
+		tlc->box = tl->box;
+		tlc->on = [=](Vec p, int) {
+			if (!mod || mod->rows.empty())
+				return;
+			int r = rowAtX(p.x, tl->box.size.x);
+			if (r >= 0) {
+				mod->selRow = r;
+				mod->params[TechnoAblauf::ROW_PARAM].setValue(r);
+			}
+		};
+		addChild(tlc);
 		// the pads
 		Drawn* pd = place<Drawn>(this, L::A_PADS);
 		pd->paintLit = [=](const DrawArgs& a) { drawPads(a.vg, pd->box.size); };
@@ -839,12 +870,62 @@ struct TechnoAblaufWidget : ModuleWidget {
 			bool on = gm() != nullptr;
 			nvgBeginPath(a.vg);
 			nvgCircle(a.vg, 6, ln->box.size.y / 2, 3.5f);
-			nvgFillColor(a.vg, on ? GREEN : nvgRGB(0x44, 0x46, 0x50));
+			nvgFillColor(a.vg, on ? (mod && mod->link.fellBack ? nvgRGB(0xff, 0xa0, 0x30) : GREEN) : nvgRGB(0x44, 0x46, 0x50));
 			nvgFill(a.vg);
 			text(a.vg, bold(), 14, ln->box.size.y / 2, on ? "LINK" : "NO LINK", 8.f, on ? TXT : DIM);
 		};
 	}
 
+	// the timeline's inner width and where a row starts (in bars)
+	static constexpr float TL_PAD = 6.f;
+	int rowAtX(float x, float w) {
+		int total = 0;
+		for (const Section& s : mod->rows)
+			total += std::max(1, (int) s.bars);
+		float u = (x - TL_PAD) / std::max(1.f, w - 2 * TL_PAD) * total;
+		int acc = 0;
+		for (int i = 0; i < (int) mod->rows.size(); i++) {
+			acc += std::max(1, (int) mod->rows[i].bars);
+			if (u < acc)
+				return i;
+		}
+		return (int) mod->rows.size() - 1;
+	}
+	void drawTime(NVGcontext* vg, Vec sz) {
+		using namespace tui;
+		if (!mod)
+			return;
+		auto f = bold();
+		GenraTechno* g = gm();
+		int n = (int) mod->rows.size();
+		if (n == 0) {
+			text(vg, f, sz.x / 2, sz.y / 2 + 0.5f, "NO SONG YET: MAKE SONG, TAKE LIVE, OR A PAD + INSERT", 7.f, DIM, NVG_ALIGN_CENTER);
+			return;
+		}
+		int total = 0;
+		for (const Section& s : mod->rows)
+			total += std::max(1, (int) s.bars);
+		float x0 = TL_PAD, w = sz.x - 2 * TL_PAD, y = 4.f, h = sz.y - 8.f;
+		bool song = g && g->running.load() && g->pubSongMode.load() && mod->mode == 1;
+		int playing = song ? g->pubRow.load() : -1;
+		float x = x0;
+		for (int i = 0; i < n; i++) {
+			const Section& s = mod->rows[i];
+			float bw = w * std::max(1, (int) s.bars) / total;
+			NVGcolor c = PART_COL[s.part % 6];
+			bool now = i == playing;
+			roundRect(vg, x + 0.6f, y, std::max(1.f, bw - 1.2f), h, 1.5f, now ? c : dark(c, 0.55f));
+			if (bw > 16.f)
+				textFit(vg, f, x + bw / 2, y + h / 2 + 0.5f, PART_NAMES[s.part % 6], 6.2f, bw - 4, now ? BG : TXT, NVG_ALIGN_CENTER, 0.4f);
+			if (i == mod->selRow) // the row ROW (or ROW CV) picks
+				frame(vg, x + 0.6f, y - 1.5f, std::max(1.f, bw - 1.2f), h + 3.f, 2.f, WHITE, 1.2f);
+			if (now) {
+				float pos = clamp(g->pubSecPos.load(), 0.f, 1.f);
+				roundRect(vg, x + bw * pos - 0.8f, y - 2.5f, 1.6f, h + 5.f, 0.5f, WHITE);
+			}
+			x += bw;
+		}
+	}
 	void drawSong(NVGcontext* vg, Vec sz) {
 		using namespace tui;
 		auto f = bold();
@@ -959,11 +1040,20 @@ struct TechnoAblaufWidget : ModuleWidget {
 				seenEdit = g->editSerial;
 		}
 		// an edit by hand in GENRA TECHNO or GRID while the song plays: onto the pad it came from
+		if (g && g->rstStopped.exchange(false) && !mod->rows.empty()) { // RST on GENRA TECHNO while stopped
+			mod->selRow = 0;
+			mod->params[TechnoAblauf::ROW_PARAM].setValue(0.f);
+		}
 		if (g && g->editSerial != seenEdit) {
 			seenEdit = g->editSerial;
 			int pd = g->editPad;
 			if (mod->mode == 1 && g->script.load() && g->running.load() && pd >= 0 && pd < 64 && mod->pads[pd].used) {
 				mod->pads[pd].pat = g->editPat;
+				mod->dirty = true;
+			}
+			// PATT mode: the edit goes onto the pad loaded last (the one that plays)
+			else if (mod->mode == 0 && mod->lastPad >= 0 && mod->lastPad < 64 && mod->pads[mod->lastPad].used) {
+				mod->pads[mod->lastPad].pat = g->editPat;
 				mod->dirty = true;
 			}
 		}
@@ -974,9 +1064,22 @@ struct TechnoAblaufWidget : ModuleWidget {
 			if (mod->mode == 0 && g)
 				g->post(mod->pads[pr].pat, !g->running.load());
 		}
-		int rr = mod->rowCvReq.exchange(-1);
-		if (rr >= 0 && !mod->rows.empty())
-			mod->params[TechnoAblauf::ROW_PARAM].setValue(std::min(rr, (int) mod->rows.size() - 1));
+		// ROW CV: 0..10 V over all the rows there are
+		float rc = mod->rowCv.load();
+		if (rc >= 0.f && !mod->rows.empty()) {
+			int rr = clamp((int) std::round(rc * ((int) mod->rows.size() - 1)), 0, (int) mod->rows.size() - 1);
+			if (rr != lastRowCv) {
+				mod->params[TechnoAblauf::ROW_PARAM].setValue(rr);
+				lastRowCv = rr;
+			}
+		}
+		else
+			lastRowCv = -1;
+		// RST while stopped: PLAY starts from the first row
+		if (mod->rstStopped.exchange(false) && !mod->rows.empty()) {
+			mod->selRow = 0;
+			mod->params[TechnoAblauf::ROW_PARAM].setValue(0.f);
+		}
 		// the knobs: ROW picks a row and shows its pad, bars and part; those three change the row
 		int nRows = (int) mod->rows.size();
 		// ROW turns only over the rows there are
@@ -1048,6 +1151,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 			return;
 		mod->link.appendMenu(menu);
 		menu->addChild(new MenuSeparator);
+		menu->addChild(createBoolPtrMenuItem("RUN as gate (runs while high)", "", &mod->runGate));
 		menu->addChild(createSubmenuItem("Build of the selected row", "", [=](ui::Menu* sub) {
 			for (int b = 1; b < NUM_BUILDS; b++)
 				sub->addChild(createCheckMenuItem(BUILD_NAMES[b], "",

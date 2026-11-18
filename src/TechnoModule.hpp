@@ -23,6 +23,7 @@ struct GenraTechno;
 struct TechnoLink {
 	std::atomic<GenraTechno*> main{nullptr};
 	int64_t wantId = -1; // -1: automatic (the first GENRA TECHNO)
+	bool fellBack = false; // the GENRA TECHNO picked is not there (any more): on the first one, the LINK light amber
 	float timer = 0.f;
 	Module* owner = nullptr;
 	TechnoLink();
@@ -95,6 +96,9 @@ struct GenraTechno : Module {
 	// ---------------------------------------------------------------- UI → audio
 	std::atomic<tg::Pattern*> incoming{nullptr};
 	std::atomic<bool> incomingNow{false}; // take it at once (edits), else at the next bar
+	std::atomic<int> incomingPad{-1};     // the pad that played when it was sent: lands only while that pad still plays
+	bool runGate = false, runHigh = false; // RUN: a gate (runs while high) instead of a trigger
+	std::atomic<bool> rstStopped{false};  // RST while stopped: ABLAUF goes back to its first row
 	std::atomic<tg::Pattern*> spent{nullptr};
 	struct Plan {
 		tg::Section s[96];

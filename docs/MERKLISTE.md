@@ -1,8 +1,12 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 18. Nov. 2026, nach Build 2.0.4 (dev, kein Release).
+Stand 18. Nov. 2026, nach Build 2.0.5 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.5: MOD-Tabelle mit Abschnitten als Spalten (Klick, Mausrad, Kopf blättert), IN / IN SEC / IN × SEC mit LFO,
+  Abschnitts-Buchsen (Namen hell/grau, Tooltip), gestrichelte Linie im Display; ABLAUF-Zeitleiste (Klick, Rahmen),
+  ROW CV 0–10 V über alle Zeilen, RST im Stillstand; MAIN/LIVE SONG unter PLAY; KEY/SCALE folgen dem Pattern;
+  RUN als Gate; PATT-Änderungen aufs letzte Pad; LINK orange beim Rückfall; alte Patches laden.
 - 2.0.4: ABLAUF-TRANSPORT (LOOP grau in PATT), Farben (PLAY grün, NEW orange, Modus blau), ein UNDO für Hauptmodul + GRID
   (auch KEY/STYLE), LOCK schützt vor jedem Neu-Erzeugen, Änderungen im SONG-Modus bleiben auf dem Pad, zweimal drücken
   bei GRID CLEAR / ABLAUF DELETE, Randomize, LEN auf 0, Reset.

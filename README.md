@@ -84,10 +84,16 @@ REC writes MIDI notes at the playing step (right-click › MIDI input).
 
 ## GENRA TECHNO MOD
 
-Four lanes (A–D). For every part (INTRO … OUTRO) and lane one movement: OFF, LOW, MID, HIGH, RISE, FALL, SWELL, FADE,
-WAVE, PUMP, WANDER, STEPS, JUMP, DIP (click: next; mouse wheel; right-click: the list). Per lane: DEPTH, SMOOTH (glide
-between the parts), TARGET (only a name for the display), BARS (speed of WAVE), UNI (0–10 V) / BI (±5 V). GROW: later
-drops bigger; CHORD: a little lift on every chord change; FREEZE: hold. Presets in the head.
+Four lanes (A–D). The table MOVE PER SECTION has the song's sections as columns (9 shown; the mouse wheel on the head
+pages) and the lanes as rows. A cell takes its part's movement unless it is set for that one section (a white dot).
+Movements: OFF, LOW, MID, HIGH, RISE, FALL, SWELL, FADE, WAVE, PUMP, WANDER, STEPS, JUMP, DIP and from outside IN (the
+lane's jack IN A–D), IN SEC (the section's jack) and IN × SEC (both multiplied). A click opens the list (with "Like every
+…" and "This for every …"); the mouse wheel steps through it. Below are ten section jacks: INTRO, GROOVE 1/2, BUILD 1/2,
+DROP 1/2, BREAK 1/2, OUTRO (a third section of a part uses its "2"). Their names are bright in the part's colour when the
+song has the section, grey and struck out when not (a cable there does nothing); the tooltip says the row and bars. The
+display draws what comes in from outside as a line. Per lane: DEPTH, SMOOTH, TARGET, BARS, UNI (0–10 V) / BI (±5 V).
+GROW: later drops bigger; CHORD: a little lift on every chord change; FREEZE: hold. Presets in the head. Outputs A–D,
+PHRASE, PART OUT and BAR on the right. Without a GENRA TECHNO the table has the six parts.
 
 MOD follows the song GENRA TECHNO plays: ABLAUF's when ABLAUF is in SONG mode, else the LIVE song. Without a GENRA
 TECHNO it counts its CLK input (16ths) and takes the part from PART (0–5 V). The display shows the whole song, the
