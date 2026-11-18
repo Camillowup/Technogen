@@ -1,8 +1,9 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 16. Nov. 2026, nach Build 2.0.2 (dev, kein Release).
+Stand 18. Nov. 2026, nach Build 2.0.3 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.3: ABLAUF TAKE LIVE (zweimal drücken): Pads pro Abschnitt, Zeilen wie im LIVE-Song, klingt gleich; UNDO; FORM-Feld lesbar.
 - 2.0.2: SCALE-Dropdown (Wechsel behält Rhythmus), Follow mit GENRA/GENRA Instruments 2.40.0 (Bass, Melody, Pad, Drums, Stab), Presets folgen dem Stil.
 - 2.0.1: MAIN-Loop beim Start, LIVE SONG, Klick in die Zeitleiste (Sprung am Taktende), < PART / PART >, kürzeres Intro.
 - Hauptmodul allein: PLAY, LIVE-Song läuft durch (Intro bis Outro), Builds hörbar verschieden, PERFORM, FILL, MUTE/LOCK.

@@ -219,10 +219,11 @@ struct TechnoAblaufWidget : ModuleWidget {
 	struct Snap {
 		std::vector<Section> rows;
 		std::vector<Pad> pads;
+		bool dj = true;
 	};
 	std::deque<Snap> undo;
 	std::vector<std::pair<SongScript*, float>> trash;
-	int armed = 0; // 1 copy (source), 2 copy (target), 3 clear, 4 clear all (press again)
+	int armed = 0; // 1 copy (source), 2 copy (target), 3 clear, 4 clear all, 5 take live (press again)
 	int copySrc = -1;
 	float armT = 0.f;
 	float last[TechnoAblauf::NUM_PARAMS] = {-1, -1, -1, -1};
@@ -238,6 +239,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 		Snap s;
 		s.rows = mod->rows;
 		s.pads.assign(mod->pads, mod->pads + 64);
+		s.dj = mod->dj;
 		undo.push_back(s);
 		while (undo.size() > 12)
 			undo.pop_front();
@@ -326,6 +328,52 @@ struct TechnoAblaufWidget : ModuleWidget {
 		mod->lastPad = at;
 		mod->dirty = true;
 		return at;
+	}
+	/** TAKE LIVE: GENRA TECHNO's LIVE song as it is planned now becomes ABLAUF's song. The pads are cleared; every
+	 * section gets a pad of its own with the pattern GENRA TECHNO plays (INTRO 1, GROOVE 1, BUILD 1, DROP 1 …), the rows
+	 * are the sections as they are (bars, part, build, the bigger later drops), DJ IN/OUT as in the LIVE song. In SONG
+	 * mode it then sounds the same, and every section can be changed on its own pad. UNDO brings back what was there. */
+	void takeLive() {
+		GenraTechno* g = gm();
+		if (!g)
+			return;
+		const GenraTechno::Plan& plan = g->plans[g->planCur.load()];
+		int n = std::min(plan.n, 96);
+		if (n <= 0)
+			return;
+		pushUndo();
+		for (int i = 0; i < 64; i++)
+			mod->pads[i] = Pad();
+		mod->rows.clear();
+		int count[NUM_PARTS] = {};
+		int lastOfPart[NUM_PARTS];
+		for (int k = 0; k < NUM_PARTS; k++)
+			lastOfPart[k] = -1;
+		int next = 0;
+		for (int i = 0; i < n; i++) {
+			Section s = plan.s[i];
+			int part = clamp((int) s.part, 0, NUM_PARTS - 1);
+			int at = next < 64 ? next++ : lastOfPart[part];  // (more than 64 sections: the last pad of the part again)
+			if (at < 0)
+				at = 0;
+			if (!mod->pads[at].used) {
+				Pad& d = mod->pads[at];
+				d.used = true;
+				d.pat = g->pat;
+				d.part = part;
+				d.name = string::f("%s %d", PART_NAMES[part], ++count[part]);
+			}
+			lastOfPart[part] = at;
+			s.pad = (uint8_t) at;
+			mod->rows.push_back(s);
+		}
+		mod->dj = g->liveDj;
+		mod->lastPad = 0;
+		mod->bank = 0;
+		mod->mode = 1;
+		mod->selRow = 0;
+		mod->params[TechnoAblauf::ROW_PARAM].setValue(0.f);
+		mod->dirty = true;
 	}
 	void makeSong() {
 		GenraTechno* g = gm();
@@ -492,7 +540,13 @@ struct TechnoAblaufWidget : ModuleWidget {
 		}
 		TField* fo = place<TField>(this, L::F_FORM);
 		fo->prefix = "FORM";
-		fo->value = [=]() { return std::string(FORMS[mod ? mod->form : 0].name); };
+		// the field is narrow (TAKE LIVE beside it): the name without the minutes, which the list shows
+		fo->value = [=]() {
+			std::string n = FORMS[mod ? mod->form : 0].name;
+			size_t d = n.find(" ·");
+			return d == std::string::npos ? n : n.substr(0, d);
+		};
+		fo->fit = true;
 		fo->count = []() { return 6; };
 		fo->current = [=]() { return mod ? mod->form : 0; };
 		fo->item = [](int i) { return std::string(FORMS[i].name); };
@@ -507,6 +561,23 @@ struct TechnoAblaufWidget : ModuleWidget {
 		mk->act = [=]() {
 			if (mod)
 				makeSong();
+		};
+		TButton* tk = place<TButton>(this, L::BTN_TAKE);
+		tk->labelOf = [=]() { return std::string(armed == 5 ? "SURE?" : "TAKE LIVE"); };
+		tk->col = dark(RED, 0.6f);
+		tk->textCol = WHITE;
+		tk->lit = [=]() { return armed == 5; };
+		tk->act = [=]() {
+			if (!mod)
+				return;
+			if (armed == 5) {
+				armed = 0;
+				takeLive();
+			}
+			else {
+				armed = 5;
+				armT = 4.f;
+			}
 		};
 		TButton* dj = place<TButton>(this, L::BTN_DJ);
 		dj->label = "DJ IN/OUT";
@@ -613,6 +684,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 			mod->rows = undo.back().rows;
 			for (int i = 0; i < 64 && i < (int) undo.back().pads.size(); i++)
 				mod->pads[i] = undo.back().pads[i];
+			mod->dj = undo.back().dj;
 			undo.pop_back();
 			mod->dirty = true;
 		};

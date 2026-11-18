@@ -68,6 +68,8 @@ REC writes MIDI notes at the playing step (right-click › MIDI input).
   COPY (from, to), CLEAR (then a pad), CLEAR ALL (press twice; UNDO brings it back). Right-click a pad: MIDI export.
 - **SONG**: the rows (pad, bars, part, build). ROW picks a row, PAD, BARS and PART change it; INSERT puts the last pad
   after it, DELETE, UNDO, LOOP (the selected row repeats). FORM + MAKE SONG builds a song in a club form from the pads.
+  TAKE LIVE (press twice) takes GENRA TECHNO's LIVE song: one pad per section with the pattern it plays, the rows as
+  in the LIVE song (UNDO: back).
   DJ IN/OUT: intro and outro drums only. PLAY plays the song from the selected row (SONG mode), STOP stops.
   EXPORT SONG / EXPORT PAD write MIDI.
 - Inputs: RUN, RST, NEXT, PAD CV, ROW CV. Outputs: END, ROW, PART (0–5 V), BUILD (gate), DROP, PHRASE.

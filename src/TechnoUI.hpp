@@ -121,6 +121,7 @@ struct TButton : widget::OpaqueWidget {
 struct TField : widget::OpaqueWidget {
 	std::string prefix;
 	NVGcolor col = TXT;
+	bool fit = false; // shrink a long value to the field (else it is cut)
 	std::function<std::string()> value;
 	std::function<int()> count, current;
 	std::function<std::string(int)> item;
@@ -133,7 +134,10 @@ struct TField : widget::OpaqueWidget {
 		float x = 4.5f;
 		if (!prefix.empty())
 			x += text(args.vg, bold(), x, box.size.y / 2 + 0.5f, prefix, 8.f, mixc(col, BG, 0.35f)) + 5.f;
-		text(args.vg, bold(), x, box.size.y / 2 + 0.5f, v, 8.5f, col);
+		if (fit)
+			textFit(args.vg, bold(), x, box.size.y / 2 + 0.5f, v, 8.5f, box.size.x - 12.f - x, col);
+		else
+			text(args.vg, bold(), x, box.size.y / 2 + 0.5f, v, 8.5f, col);
 		nvgRestore(args.vg);
 		float ax = box.size.x - 6.f, ay = box.size.y / 2;
 		nvgBeginPath(args.vg);

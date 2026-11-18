@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.3 (18 Nov 2026, test build, no release)
+
+- ABLAUF: new key **TAKE LIVE** beside MAKE SONG. Press twice (SURE?): ABLAUF takes GENRA TECHNO's LIVE song as it is
+  planned now. The pads are cleared, every section gets a pad of its own with the pattern GENRA TECHNO plays (INTRO 1,
+  GROOVE 1, BUILD 1, DROP 1, … DROP 2 …), the song rows are the sections as they are (bars, part, build, the bigger later
+  drops), DJ IN/OUT as in the LIVE song, and ABLAUF goes to SONG. It sounds the same; now every section can be changed on
+  its own pad. UNDO brings back what was there. (EVOLVE and PERFORM jumps are played live and are not taken over.)
+- The FORM field is narrower: it shows the form's name, the list its length too.
+
 ## 2.0.2 (16 Nov 2026, test build, no release)
 
 - The choices under the display are narrower: FAM, STYLE, KEY, the new **SCALE** and BUILD. SCALE: AUTO (the style's),

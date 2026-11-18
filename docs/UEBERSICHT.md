@@ -7,7 +7,7 @@ Plugin `GenraTechno` (Marke Genra), vier Module. Stand 2.0.0 (16. Nov. 2026).
 | `src/tg/Engine.hpp/.cpp` | Engine ohne Rack: Stile, Generator mit Bewertung, Songplan, Builds, GROW, `resolveStep`, MIDI |
 | `src/TechnoModule.hpp`, `src/GenraTechno.cpp` | Hauptmodul: Player, LIVE-Song, PERFORM, Panel, Registry/Links |
 | `src/TechnoGrid.cpp` | GRID (Editor, REC über MIDI) |
-| `src/TechnoAblauf.cpp` | ABLAUF (Pads, Song-Zeilen, MAKE SONG, übergibt `SongScript` ans Hauptmodul) |
+| `src/TechnoAblauf.cpp` | ABLAUF (Pads, Song-Zeilen, MAKE SONG, TAKE LIVE übernimmt den LIVE-Song, übergibt `SongScript` ans Hauptmodul) |
 | `src/TechnoMod.cpp` | MOD (4 CV-Spuren, Matrix pro Teil, Song-View) |
 | `src/TechnoUI.hpp` | Look: Farben, Taster, Dropdowns (Mausrad) |
 | `src/link/` | Link-Hub der GENRA-Plugins (Kopie aus Genra-for-Vcv), für Follow |

@@ -41,8 +41,9 @@ for i in range(6):
     P.button(f"BTN_VAR{i}", px + 2 + i * (bw2 + 1.0), vy + 2.6, bw2, 7.0, ["INTRO", "GROOVE", "BUILD", "DROP", "BREAK", "OUTRO"][i],
              mix(PART_COLS[i], 0.55), "#ffffff", 1.05)
 fy = vy + 11.6
-P.field("F_FORM", px + 2, fy, pw - 30, 5.6, "FORM  PEAK TIME")
-P.button("BTN_MAKE", px + pw - 26.5, fy, 24.5, 5.6, "MAKE SONG", RED, "#ffffff", 1.25)
+P.field("F_FORM", px + 2, fy, pw - 53, 5.6, "FORM  PEAK TIME")
+P.button("BTN_TAKE", px + pw - 50, fy, 23, 5.6, "TAKE LIVE", mix(RED, 0.6), "#ffffff", 1.2)
+P.button("BTN_MAKE", px + pw - 26, fy, 24, 5.6, "MAKE SONG", RED, "#ffffff", 1.2)
 by = fy + 7.0
 bw3 = (pw - 4 - 3 * 1.0) / 4
 for i, (n, s) in enumerate((("BTN_DJ", "DJ IN/OUT"), ("BTN_COPY", "COPY"), ("BTN_CLEAR", "CLEAR"), ("BTN_CLEARALL", "CLEAR ALL"))):
