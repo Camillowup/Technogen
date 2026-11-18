@@ -1068,13 +1068,13 @@ struct TechnoAblaufWidget : ModuleWidget {
 		float rc = mod->rowCv.load();
 		if (rc >= 0.f && !mod->rows.empty()) {
 			int rr = clamp((int) std::round(rc * ((int) mod->rows.size() - 1)), 0, (int) mod->rows.size() - 1);
-			if (rr != lastRowCv) {
+			if (rr != mod->lastRowCv) {
 				mod->params[TechnoAblauf::ROW_PARAM].setValue(rr);
-				lastRowCv = rr;
+				mod->lastRowCv = rr;
 			}
 		}
 		else
-			lastRowCv = -1;
+			mod->lastRowCv = -1;
 		// RST while stopped: PLAY starts from the first row
 		if (mod->rstStopped.exchange(false) && !mod->rows.empty()) {
 			mod->selRow = 0;
