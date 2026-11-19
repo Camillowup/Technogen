@@ -40,10 +40,16 @@ static const tui::BtnDef BTNS[] = {
     {L::BTN_MUTE4, "MUTE ATMO"},
     {L::BTN_PREV, "PREV"},
     {L::BTN_NEXT, "NEXT"},
-    {L::BTN_MAIN, "MAIN"},
+    {L::BTN_MAIN, "PATTERN"},
     {L::BTN_SONGMODE, "LIVE SONG"},
 };
 static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+// the fields MIDI-MAP can turn through (FLD_PARAM + i; only ever append)
+static const tui::BtnDef FLDS[] = {
+    {L::F_STYLE, "STYLE"}, {L::F_KEY, "KEY"}, {L::F_SCALE, "SCALE"}, {L::F_FEEL, "FEEL"}, {L::F_BUILD, "BUILD"},
+    {L::F_TYPE0, "DRUMS TYPE"}, {L::F_TYPE1, "BASS TYPE"}, {L::F_TYPE2, "STAB TYPE"}, {L::F_TYPE3, "LEAD TYPE"}, {L::F_TYPE4, "ATMO TYPE"},
+};
+static const int NUM_FLDS = (int) (sizeof(FLDS) / sizeof(FLDS[0]));
 
 // ================================================================ the registry and the links
 namespace techno_registry {
@@ -128,6 +134,8 @@ GenraTechno::GenraTechno() {
 	config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 	static_assert(sizeof(BTNS) / sizeof(BTNS[0]) == 29, "BTN_PARAM count");
 	tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
+	static_assert(sizeof(FLDS) / sizeof(FLDS[0]) == 10, "FLD_PARAM count");
+	tui::configSelects(this, FLD_PARAM, FLDS, NUM_FLDS);
 	configParam(BPM_PARAM, 60.f, 200.f, 132.f, "Tempo", " BPM");
 	configParam(SWING_PARAM, 50.f, 66.f, 51.f, "Swing", " %");
 	configParam(ENERGY_PARAM, 0.f, 1.f, 0.6f, "Energy", " %", 0.f, 100.f);
@@ -362,11 +370,32 @@ void GenraTechno::startSong(int fromRow) {
 }
 
 void GenraTechno::enterMain() {
-	// MAIN: the first drop of the song, 8 bars, again and again
+	// PATTERN (was MAIN): the pattern that plays, 8 bars, again and again: as a drop, or as the part of the ABLAUF pad
+	// picked in PATT (BREAK 2 as a break). With ABLAUF's song (SONG): its first drop.
 	SongScript* sc = script.load();
 	Section s;
 	s.part = P_DROP;
 	int idx = 0;
+	int lp = loopPart.load();
+	if (!(sc && !sc->rows.empty()) && lp >= 0 && lp < NUM_PARTS) {
+		Plan& p = plans[planCur.load()];
+		for (int i = p.n - 1; i >= 0; i--)
+			if (p.s[i].part == lp)
+				idx = i, s = p.s[i];
+		s.part = (uint8_t) lp;
+		s.bars = 8;
+		s.grow = 0;
+		s.dropIdx = 0;
+		if (lp == P_BUILD && s.build == BT_NONE)
+			s.build = (uint8_t) (forcedBuild != B_AUTO ? forcedBuild : pickBuild(style, songSeed, -1, 0));
+		planIdx = idx;
+		inOv = false;
+		mainIdx = idx;
+		dropsSoFar = buildsSoFar = 0;
+		enterSection(s);
+		inMain = true;
+		return;
+	}
 	if (sc && !sc->rows.empty()) {
 		for (int i = (int) sc->rows.size() - 1; i >= 0; i--)
 			if (sc->rows[i].part == P_DROP)
@@ -521,10 +550,16 @@ void GenraTechno::tick(float sr) {
 		// PERFORM at the start of a phrase
 		if (secBar % 8 == 0 && performReq.load() >= 0) {
 			int req = performReq.exchange(-1);
-			if (inMain) { // PERFORM leaves MAIN: the song goes on from the drop
-				mainMode = false;
-				inMain = false;
+			if (inMain) { // PATTERN: the part for 8 bars over the loop, then the loop again
+				Section s;
+				s.part = (uint8_t) req;
+				s.bars = 8;
+				if (req == P_BUILD)
+					s.build = (uint8_t) (forcedBuild != B_AUTO ? forcedBuild : pickBuild(style, hash(songSeed, (uint32_t) songStep, 9), cur.build, 0));
+				enterSection(s);
+				inMain = true;
 			}
+			else {
 			SongScript* sc = script.load();
 			if (sc && !sc->rows.empty()) {
 				int n = (int) sc->rows.size();
@@ -561,6 +596,7 @@ void GenraTechno::tick(float sr) {
 					ovI = 0;
 					enterSection(ov[0]);
 				}
+			}
 			}
 		}
 		// a new pattern at the start of a bar, unless the song moved on to another pad meanwhile
@@ -969,6 +1005,7 @@ json_t* GenraTechno::dataToJson() {
 	json_object_set_new(root, "build", json_integer(forcedBuild));
 	json_object_set_new(root, "seed", json_integer(songSeed));
 	json_object_set_new(root, "main", json_boolean(mainMode.load()));
+	json_object_set_new(root, "loopPart", json_integer(loopPart.load()));
 	json_object_set_new(root, "liveDj", json_boolean(liveDj));
 	json_t* tr = json_array();
 	for (int t = 0; t < NUM_TRACKS; t++) {
@@ -983,6 +1020,7 @@ json_t* GenraTechno::dataToJson() {
 }
 
 void GenraTechno::dataFromJson(json_t* root) {
+	jsonCode++;
 	if (json_t* j = json_object_get(root, "style"))
 		style = clamp((int) json_integer_value(j), 0, numStyles() - 1);
 	if (json_t* j = json_object_get(root, "key"))
@@ -998,6 +1036,9 @@ void GenraTechno::dataFromJson(json_t* root) {
 	if (json_t* j = json_object_get(root, "seed"))
 		songSeed = (uint32_t) json_integer_value(j);
 	mainMode = !json_is_false(json_object_get(root, "main"));
+	loopPart = -1;
+	if (json_t* lp = json_object_get(root, "loopPart"))
+		loopPart = clamp((int) json_integer_value(lp), -1, NUM_PARTS - 1);
 	liveDj = json_is_true(json_object_get(root, "liveDj"));
 	if (json_t* tr = json_object_get(root, "tracks"))
 		for (int t = 0; t < NUM_TRACKS && t < (int) json_array_size(tr); t++) {
@@ -1503,7 +1544,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		nx->fontSize = 7.5f;
 		nx->act = [=]() { partStep(1); };
 		TButton* mn = place<TButton>(this, L::BTN_MAIN);
-		mn->label = "MAIN";
+		mn->label = "PATTERN";
 		mn->fontSize = 8.f;
 		mn->colOf = [=]() { return gm && gm->mainMode.load() ? MODECOL : BTN; };
 		mn->textCol = WHITE;
@@ -1601,7 +1642,9 @@ struct GenraTechnoWidget : ModuleWidget {
 		int part = gm ? gm->pubPart.load() : 0;
 		std::string bl;
 		if (gm && inMain) {
-			bl = string::f("MAIN: THE DROP IN A LOOP (THE THEME)    BAR %d / 8", gm->running.load() ? gm->pubSecBar.load() + 1 : 1);
+			int lp = gm->loopPart.load();
+			bl = string::f("PATTERN: IN A LOOP AS %s    BAR %d / 8", PART_NAMES[lp >= 0 && lp < 6 ? lp : P_DROP],
+			               gm->running.load() ? gm->pubSecBar.load() + 1 : 1);
 		}
 		else if (gm) {
 			int songB = total;
@@ -1614,7 +1657,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		}
 		text(vg, f, 10, H - 8, bl, 8.f, DIM, NVG_ALIGN_LEFT, 0.6f);
 		if (gm && inMain)
-			text(vg, f, W - 52, H - 8, "LIVE SONG OR A CLICK ON A PART: THE SONG GOES ON", 7.f, YEL, NVG_ALIGN_RIGHT, 0.5f);
+			text(vg, f, W - 52, H - 8, "MUTATE / EVOLVE CHANGE IT · LIVE SONG: THE SONG", 7.f, YEL, NVG_ALIGN_RIGHT, 0.5f);
 		else if (gm) {
 			int np = gm->pubNextPart.load();
 			text(vg, f, W - 52, H - 8, std::string("NEXT: ") + PART_NAMES[np % 6], 8.f, PART_COL[np % 6], NVG_ALIGN_RIGHT, 0.8f);
@@ -1625,6 +1668,8 @@ struct GenraTechnoWidget : ModuleWidget {
 		ModuleWidget::step();
 		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
 			tui::mapButtons(this, module, GenraTechno::BTN_PARAM, BTNS, NUM_BTNS);
+			if (gm)
+				tui::mapFields(this, module, GenraTechno::FLD_PARAM, FLDS, NUM_FLDS, &gm->jsonCode);
 			btnsMapped = true;
 		}
 		if (!gm)
@@ -1684,7 +1729,7 @@ struct GenraTechnoWidget : ModuleWidget {
 			lastBpm = bp;
 		}
 		// a knob turned: its value in the display for a moment
-		for (int i = 0; i < GenraTechno::BTN_PARAM; i++) {
+		for (int i = 0; i < GenraTechno::BTN_PARAM; i++) { // the knobs (not the buttons and fields)
 			float v = gm->params[i].getValue();
 			if (paramsSeen && v != lastParam[i]) {
 				engine::ParamQuantity* pq = gm->paramQuantities[i];

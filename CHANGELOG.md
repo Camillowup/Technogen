@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.8 (19 Nov 2026, test build, no release)
+
+- MAIN is now **PATTERN**: the pattern in a loop (8 bars again and again; MUTATE and EVOLVE change it). BUILD, DROP and
+  BREAK play their part for 8 bars over it, then the loop goes on (they no longer leave it for the song).
+- ABLAUF in PATT: a pad loops as its own part (BREAK 2 as a break), with PLAY in ABLAUF and PLAY on GENRA TECHNO alike;
+  another pad from the next bar. PLAY no longer jumps to SONG while PATT is chosen; in SONG it plays the rows.
+- MIDI-MAP turns the fields too: STYLE, KEY, SCALE, FEEL, BUILD and the five TYPEs, ABLAUF's SONG FORM, MOD's TARGET and
+  BARS (the field shows the entry at once and takes it when the knob rests for 0.3 s).
+
 ## 2.0.7 (19 Nov 2026, test build, no release)
 
 - MIDI-MAP can press every button of the four modules (not the pads): PLAY, STOP, MAIN, LIVE SONG, NEW and LOCK per

@@ -35,8 +35,9 @@ right-click › Connect to …).
   knob (GROOVE, ACID, DUB, LOOP, MOVE), LEN (the track's own loop length in 16ths: polymeter), NEW, LOCK and MUTE.
 - **Better patterns**: for every track the generator makes several candidates and keeps the one the rules like best
   (kick and bass apart, enough repetition, chord tones on the strong beats …).
-- **MAIN** (the default, and after NEW ALL): the drop in a loop, all tracks, 8 bars again and again. Work on the theme
-  here (NEW, LOCK, TYPE, DENS …), then switch to the song.
+- **PATTERN** (was MAIN; the default, and after NEW ALL): the pattern in a loop, all tracks, 8 bars again and again (as a
+  drop, or as the part of the ABLAUF pad picked in PATT: BREAK 2 as a break). MUTATE and EVOLVE change it; BUILD, DROP,
+  BREAK play their part for 8 bars over it. Work on the theme here (NEW, LOCK, TYPE, DENS …), then switch to the song.
 - **LIVE SONG**: without ABLAUF (or with ABLAUF in PATT mode) GENRA TECHNO makes the whole song itself: intro, groove,
   build, drop, break, build, drop, outro, as long as LENGTH says (2–12 minutes). One element changes every 8 bars.
   Right-click › DJ intro and outro: 32 bars, drums only (else a 16-bar intro).

@@ -30,6 +30,10 @@ static const tui::BtnDef BTNS[] = {
     {L::BTN_FREEZE, "FREEZE"},
 };
 static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+static const tui::BtnDef FLDS[] = {
+    {L::F_TARGET0, "TARGET A"}, {L::F_TARGET1, "TARGET B"}, {L::F_TARGET2, "TARGET C"}, {L::F_TARGET3, "TARGET D"},
+    {L::F_BARS0, "BARS A"}, {L::F_BARS1, "BARS B"}, {L::F_BARS2, "BARS C"}, {L::F_BARS3, "BARS D"},
+};
 
 enum Shape { SH_OFF, SH_LOW, SH_MID, SH_HIGH, SH_RISE, SH_FALL, SH_SWELL, SH_FADE, SH_WAVE, SH_PUMP, SH_WANDER, SH_STEPS, SH_JUMP, SH_DIP,
              SH_IN, SH_INSEC, SH_INMUL, NUM_SHAPES };
@@ -122,7 +126,7 @@ static float shapeValue(int s, float t, float lastBar, double wave, float beat, 
 }
 
 struct TechnoMod : Module {
-	enum ParamId { ENUMS(DEPTH_PARAM, 4), ENUMS(SMOOTH_PARAM, 4), ENUMS(BTN_PARAM, 7), PRESETSEL_PARAM, NUM_PARAMS };
+	enum ParamId { ENUMS(DEPTH_PARAM, 4), ENUMS(SMOOTH_PARAM, 4), ENUMS(BTN_PARAM, 7), PRESETSEL_PARAM, ENUMS(FLD_PARAM, 8), NUM_PARAMS };
 	enum InputId { CLK_INPUT, RST_INPUT, PART_INPUT, DEPTH_INPUT, ENUMS(LANEIN_INPUT, 4), ENUMS(SEC_INPUT, NUM_SEC_IN), NUM_INPUTS };
 	enum OutputId { ENUMS(LANE_OUTPUT, 4), PHRASE_OUTPUT, PART_OUTPUT, BAR_OUTPUT, NUM_OUTPUTS };
 	TechnoLink link;
@@ -165,6 +169,7 @@ struct TechnoMod : Module {
 		configParam(PRESETSEL_PARAM, 0.f, 1.f, 0.f, "Preset select (for MIDI-MAP: a knob goes through the presets)", " %", 0.f, 100.f);
 		paramQuantities[PRESETSEL_PARAM]->randomizeEnabled = false;
 		paramQuantities[PRESETSEL_PARAM]->resetEnabled = false;
+		tui::configSelects(this, FLD_PARAM, FLDS, 8);
 		for (int j = 0; j < 4; j++) {
 			std::string n(1, (char) ('A' + j));
 			configParam(DEPTH_PARAM + j, 0.f, 1.f, 0.8f, "Lane " + n + " depth", " %", 0.f, 100.f);
@@ -919,6 +924,8 @@ struct TechnoModWidget : ModuleWidget {
 		ModuleWidget::step();
 		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
 			tui::mapButtons(this, module, TechnoMod::BTN_PARAM, BTNS, NUM_BTNS);
+			if (mod)
+				tui::mapFields(this, module, TechnoMod::FLD_PARAM, FLDS, 8, &mod->jsonCode);
 			btnsMapped = true;
 		}
 		if (!mod)

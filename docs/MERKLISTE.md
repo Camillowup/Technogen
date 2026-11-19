@@ -1,8 +1,11 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 19. Nov. 2026, nach Build 2.0.7 (dev, kein Release).
+Stand 19. Nov. 2026, nach Build 2.0.8 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.8: PATTERN (statt MAIN) als Schleife; ABLAUF auf PATT: Pad antippen, PLAY in ABLAUF oder im Hauptmodul – das Pad
+  läuft als sein Teil (BREAK 2 als Break), anderes Pad am nächsten Takt; BUILD/DROP/BREAK 8 Takte über der Schleife;
+  Felder (STYLE, KEY, SCALE, FEEL, BUILD, TYPE, SONG FORM, MOD TARGET/BARS) per MIDI-MAP.
 - 2.0.7: MIDI-MAP auf PLAY, STOP, NEW, LOCK, REC usw. lernen und drücken; MOD-PRESET mit einem Regler.
 - 2.0.6: Familien BASS und GARAGE (12 Stile) nach Gehör, FEEL AUTO/FULL/HALF, STYLE-Liste mit Untermenüs, Wobble- und
   Reese-Bass mit GENRA-Bässen, Swing bis 66 %.
@@ -24,17 +27,5 @@ Stand 19. Nov. 2026, nach Build 2.0.7 (dev, kein Release).
 
 ## Für später (entschieden, noch nicht gebaut)
 
-- **PATTERN statt MAIN, PLAY in PATT** (19. Nov. 2026):
-  - Im Hauptmodul heisst MAIN neu **PATTERN**: spielt das Pattern von GENRA TECHNO als einfache Schleife (kein eigener
-    Ablauf mit Intro/Build/Drop mehr; die gibt es von Hand über BUILD, DROP, BREAK; Veränderung mit MUTATE von Hand
-    oder EVOLVE alle 8 Takte).
-  - Steht ABLAUF auf PATT und ist ein Pad gewählt, spielt dieses Pad in Schleife als sein eigener Teil (Break 2 als
-    Break) – mit PLAY in ABLAUF und mit PLAY im Hauptmodul gleich. Ein anderes Pad am nächsten Takt, bis STOP.
-  - PLAY in ABLAUF springt nicht mehr auf SONG, solange PATT gewählt ist. LIVE SONG (Hauptmodul) und SONG (ABLAUF,
-    die Zeilen) bleiben die beiden Song-Arten.
-
-- **MIDI-MAP für die übrigen Felder** (Prüfung 19. Nov. 2026, wie MOD-PRESET in 2.0.7 über `TField::mapSelect`):
-  Hauptmodul STYLE, KEY, SCALE, FEEL, BUILD, TYPE ×5; ABLAUF SONG FORM; MOD TARGET ×4, BARS ×4. Bewusst nicht: Pads,
-  Songliste, Zeitleisten, MOD-Tabelle, GRID-Editor.
 - Weitere Module: GENRA TECHNO CHORD, danach GENRA TECHNO ACID.
 - Look kann später noch geändert werden (vorerst dunkler GENRA-Look mit Spurfarben).

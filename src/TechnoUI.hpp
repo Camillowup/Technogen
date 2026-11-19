@@ -302,6 +302,27 @@ struct Drawn : widget::Widget {
 	}
 };
 
+/** The fields MIDI-MAP can turn through (FLD_PARAM + i, 0..1 over the list; only ever append). */
+inline void configSelects(engine::Module* m, int first, const BtnDef* defs, int n) {
+	for (int i = 0; i < n; i++) {
+		m->configParam(first + i, 0.f, 1.f, 0.f, std::string(defs[i].name) + " select (for MIDI-MAP: a knob goes through the list)",
+		               " %", 0.f, 100.f);
+		m->paramQuantities[first + i]->randomizeEnabled = false;
+		m->paramQuantities[first + i]->resetEnabled = false;
+	}
+}
+inline void mapFields(ModuleWidget* mw, engine::Module* m, int first, const BtnDef* defs, int n, const uint32_t* code) {
+	if (!m)
+		return;
+	for (widget::Widget* w : mw->children)
+		if (TField* f = dynamic_cast<TField*>(w))
+			for (int i = 0; i < n; i++) {
+				Rect r = mmRect(defs[i].rect);
+				if (f->box.pos.equals(r.pos) && f->box.size.equals(r.size))
+					f->mapSelect(m, first + i, code);
+			}
+}
+
 inline void mapButtons(ModuleWidget* mw, engine::Module* m, int first, const BtnDef* defs, int n) {
 	if (!m)
 		return;

@@ -67,6 +67,7 @@ struct GenraTechno : Module {
 		ENUMS(FLAV_PARAM, 5),
 		ENUMS(LEN_PARAM, 5),
 		ENUMS(BTN_PARAM, 29), // the buttons, for MIDI-MAP (GenraTechno.cpp: BTNS)
+		ENUMS(FLD_PARAM, 10), // the fields, for MIDI-MAP (GenraTechno.cpp: FLDS)
 		NUM_PARAMS
 	};
 	enum InputId { CLK_INPUT, RST_INPUT, RUN_INPUT, NEW_INPUT, BUILD_INPUT, DROP_INPUT, ENERGY_INPUT, EVOLVE_INPUT, NUM_INPUTS };
@@ -115,7 +116,8 @@ struct GenraTechno : Module {
 	std::atomic<bool> fillReq{false};
 	std::atomic<int> performHold{-1}; // the part button held down
 	std::atomic<bool> nextRowReq{false};
-	std::atomic<bool> mainMode{true}; // MAIN: the drop in a loop (the theme); else the song
+	std::atomic<bool> mainMode{true}; // PATTERN (was MAIN): the pattern in a loop; else the song
+	std::atomic<int> loopPart{-1};    // PATTERN: the part the loop plays as (an ABLAUF pad's), -1: a drop
 	std::atomic<bool> mainReq{false}; // go into MAIN at the next bar
 	std::atomic<int> jumpBar{-1};     // jump to this bar of the song at the next bar
 	bool liveDj = false;              // LIVE song: DJ intro and outro (32 bars, drums only)
@@ -208,6 +210,7 @@ struct GenraTechno : Module {
 	void process(const ProcessArgs& args) override;
 	json_t* dataToJson() override;
 	void dataFromJson(json_t* root) override;
+	uint32_t jsonCode = 0; // bumped by dataFromJson: the fields' MIDI-MAP params do not choose then
 
 	// ---- the song
 	int planN() { return plans[planCur.load()].n; }

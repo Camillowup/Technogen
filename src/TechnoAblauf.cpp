@@ -42,6 +42,7 @@ static const tui::BtnDef BTNS[] = {
     {L::BTN_UNDO, "UNDO"},
 };
 static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+static const tui::BtnDef FLDS[] = {{L::F_FORM, "SONG FORM"}};
 
 static const int BARS_CHOICES[7] = {4, 8, 16, 24, 32, 48, 64};
 struct Form {
@@ -61,7 +62,7 @@ struct Pad {
 };
 
 struct TechnoAblauf : Module {
-	enum ParamId { ROW_PARAM, PAD_PARAM, BARS_PARAM, PART_PARAM, ENUMS(BTN_PARAM, 24), NUM_PARAMS };
+	enum ParamId { ROW_PARAM, PAD_PARAM, BARS_PARAM, PART_PARAM, ENUMS(BTN_PARAM, 24), FORMSEL_PARAM, NUM_PARAMS };
 	enum InputId { RUN_INPUT, RST_INPUT, NEXT_INPUT, PADCV_INPUT, ROWCV_INPUT, NUM_INPUTS };
 	enum OutputId { END_OUTPUT, ROW_OUTPUT, PART_OUTPUT, BUILD_OUTPUT, DROP_OUTPUT, PHRASE_OUTPUT, NUM_OUTPUTS };
 	TechnoLink link;
@@ -86,6 +87,7 @@ struct TechnoAblauf : Module {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, 0);
 		static_assert(sizeof(BTNS) / sizeof(BTNS[0]) == 24, "BTN_PARAM count");
 		tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
+		tui::configSelects(this, FORMSEL_PARAM, FLDS, 1);
 		configParam(ROW_PARAM, 0.f, 127.f, 0.f, "Row", "", 0.f, 1.f, 1.f);
 		paramQuantities[ROW_PARAM]->snapEnabled = true;
 		configParam(PAD_PARAM, 0.f, 63.f, 0.f, "Pad of the row", "", 0.f, 1.f, 1.f);
@@ -212,7 +214,9 @@ struct TechnoAblauf : Module {
 		json_object_set_new(root, "rows", ro);
 		return root;
 	}
+	uint32_t jsonCode = 0; // bumped by dataFromJson: SONG FORM's MIDI-MAP param does not choose then
 	void dataFromJson(json_t* root) override {
+		jsonCode++;
 		link.fromJson(root);
 		auto geti = [&](const char* k, int def) {
 			json_t* j = json_object_get(root, k);
@@ -532,8 +536,13 @@ struct TechnoAblaufWidget : ModuleWidget {
 			return;
 		}
 		mod->lastPad = i;
-		if (mod->mode == 0 && g)
+		if (mod->mode == 0 && g) {
 			g->post(p.pat, !g->running.load());
+			// PATT: the pad loops as its own part in GENRA TECHNO's PATTERN (from the next bar)
+			g->loopPart = p.part;
+			if (g->running.load() && g->mainMode.load())
+				g->mainReq = true;
+		}
 	}
 
 	bool btnsMapped = false;
@@ -690,13 +699,32 @@ struct TechnoAblaufWidget : ModuleWidget {
 		};
 		TButton* pl = place<TButton>(this, L::BTN_PLAY);
 		pl->label = "PLAY";
-		pl->colOf = [=]() { return gm() && gm()->running.load() && mod && mod->mode == 1 ? PLAYCOL : BTN; };
+		pl->colOf = [=]() {
+			GenraTechno* g = gm();
+			if (!g || !mod || !g->running.load())
+				return BTN;
+			return (mod->mode == 1 ? !g->mainMode.load() : g->mainMode.load()) ? PLAYCOL : BTN;
+		};
 		pl->textCol = WHITE;
 		pl->fontSize = 11.f;
 		pl->act = [=]() {
 			GenraTechno* g = gm();
 			if (!g || !mod)
 				return;
+			if (mod->mode == 0) { // PATT: the pad picked, in a loop as its own part (GENRA TECHNO's PATTERN)
+				int lp = mod->lastPad;
+				g->mainMode = true;
+				if (lp >= 0 && lp < 64 && mod->pads[lp].used) {
+					g->post(mod->pads[lp].pat, !g->running.load());
+					g->loopPart = mod->pads[lp].part;
+				}
+				if (g->running.load())
+					g->mainReq = true;
+				else
+					g->runReq = true;
+				return;
+			}
+			g->mainMode = false; // SONG: the rows, not the loop
 			if (mod->rows.empty())
 				makeSong();
 			mod->mode = 1;
@@ -1049,6 +1077,8 @@ struct TechnoAblaufWidget : ModuleWidget {
 		ModuleWidget::step();
 		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
 			tui::mapButtons(this, module, TechnoAblauf::BTN_PARAM, BTNS, NUM_BTNS);
+			if (mod)
+				tui::mapFields(this, module, TechnoAblauf::FORMSEL_PARAM, FLDS, 1, &mod->jsonCode);
 			btnsMapped = true;
 		}
 		if (!mod)
