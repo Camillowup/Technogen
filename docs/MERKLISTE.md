@@ -1,8 +1,12 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 19. Nov. 2026, nach Build 2.0.8 (dev, kein Release).
+Stand 19. Nov. 2026, nach Build 2.0.9 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.9 KUGEL: Ball werfen (ziehen und loslassen), GRAVITY/TILT (Endlos-Regler, Pfeil im Pad), FRICTION, MASS, BOUNCE,
+  die fünf WALL-Arten, RANGE an X/Y/SPEED, SMOOTH, HIT; KICK, HOLD, GATE/VEL, PUSH X/Y; REC startet am nächsten Takt,
+  LOOP spielt synchron (mit GENRA und GENRA TECHNO per Follow, mit CLK in 16tel/8tel/Vierteln/24 PPQN, ohne beides
+  120 BPM), RESET setzt auf Takt 1; Presets; MIDI-MAP auf Regler, Felder, Tasten, Preset; Loop bleibt im Patch gespeichert.
 - 2.0.8: PATTERN (statt MAIN) als Schleife; ABLAUF auf PATT: Pad antippen, PLAY in ABLAUF oder im Hauptmodul – das Pad
   läuft als sein Teil (BREAK 2 als Break), anderes Pad am nächsten Takt; BUILD/DROP/BREAK 8 Takte über der Schleife;
   Felder (STYLE, KEY, SCALE, FEEL, BUILD, TYPE, SONG FORM, MOD TARGET/BARS) per MIDI-MAP.
@@ -26,6 +30,9 @@ Stand 19. Nov. 2026, nach Build 2.0.8 (dev, kein Release).
 - Schriftgrösse im Display bei 100 % Zoom (Entscheid nach dem Test).
 
 ## Für später (entschieden, noch nicht gebaut)
+
+- KUGEL: versteckte Parameter BALL X / BALL Y, damit man den Ball mit einem XY-Pad oder Joystick am Controller führen
+  kann (beim Loslassen fliegt er mit Schwung weiter).
 
 - Weitere Module: GENRA TECHNO CHORD, danach GENRA TECHNO ACID.
 - Look kann später noch geändert werden (vorerst dunkler GENRA-Look mit Spurfarben).

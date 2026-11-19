@@ -1,7 +1,7 @@
 {
   "slug": "GenraTechno",
   "name": "GENRA TECHNO",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "license": "GPL-3.0-only",
   "brand": "Genra",
   "author": "Bastian Ofner",
@@ -36,6 +36,12 @@
       "name": "GENRA TECHNO MOD",
       "description": "Four CV lanes that move with the song: one movement per part and lane (rise, swell, wave, pump, wander, jump, dip …), depth, smooth, GROW for later drops, a song view",
       "tags": ["Modulator", "Sequencer"]
+    },
+    {
+      "slug": "TechnoKugel",
+      "name": "GENRA TECHNO KUGEL",
+      "description": "An XY pad with a ball that follows physics: throw it, gravity in any direction (tilt 360°), friction, mass, bounce, five kinds of wall; X, Y, speed and hit out; record its way in sync and loop it",
+      "tags": ["Modulator", "Random", "Visual"]
     }
   ]
 }

@@ -46,7 +46,7 @@ jobs:
           D=dist/GenraTechno
           ls -la $D $D/res
           test -f $D/plugin.dll
-          for p in GenraTechno TechnoGrid TechnoAblauf TechnoMod; do test -f $D/res/$p.svg; done
+          for p in GenraTechno TechnoGrid TechnoAblauf TechnoMod TechnoKugel; do test -f $D/res/$p.svg; done
           test -f $D/res/knob/large.svg
           if objdump -p $D/plugin.dll | grep -iE "libstdc"; then echo "plugin.dll loads libstdc++"; exit 1; fi
 

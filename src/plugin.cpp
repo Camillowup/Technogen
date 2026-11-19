@@ -14,4 +14,5 @@ void init(Plugin* p) {
 	p->addModel(modelTechnoGrid);
 	p->addModel(modelTechnoAblauf);
 	p->addModel(modelTechnoMod);
+	p->addModel(modelTechnoKugel);
 }

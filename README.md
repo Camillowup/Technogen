@@ -14,6 +14,7 @@ the instruments you patch (GENRA Instruments or any other module).
 | **GENRA TECHNO GRID** | 44 | The editor: drum raster and piano roll, velocity, chance, ratchets, loop length per track |
 | **GENRA TECHNO ABLAUF** | 34 | The song arranger: 64 pattern pads, variations per part, a song list, MAKE SONG |
 | **GENRA TECHNO MOD** | 30 | Four CV lanes that move with the song (filter sweeps, sends, levels …) |
+| **GENRA TECHNO KUGEL** | 24 | An XY pad with a ball that follows physics; record its way in sync and loop it |
 
 GRID, ABLAUF and MOD connect to GENRA TECHNO without cables (automatically to the first one in the patch;
 right-click › Connect to …).
@@ -103,6 +104,27 @@ PHRASE, PART OUT and BAR on the right. Without a GENRA TECHNO the table has the 
 MOD follows the song GENRA TECHNO plays: ABLAUF's when ABLAUF is in SONG mode, else the LIVE song. Without a GENRA
 TECHNO it counts its CLK input (16ths) and takes the part from PART (0–5 V). The display shows the whole song, the
 four lanes over it and where the song is.
+
+## GENRA TECHNO KUGEL
+
+An XY pad with a ball, after the Kaoss Physics of the Korg modwave. Drag the ball with the mouse and let go to throw it.
+
+- **PHYSICS:** GRAVITY (0–2 g), TILT (an endless knob: the direction gravity pulls, 0° is down, all 360°), FRICTION,
+  MASS (heavier: kicks and pushes move it less), BOUNCE (how much speed it keeps at a wall).
+- **WALL:** BOUNCE (it bounces off), WRAP (out on one side, in on the other), STICK (it stays at the wall until a kick),
+  SLIDE (it slides along the wall), ROUND (a round arena).
+- **RANGE** of X, Y and SPEED: −10…0 V, ±5 V or 0…10 V. SMOOTH glides them. HIT: a trigger at every wall.
+- **KICK** throws the ball in a random direction (FORCE: how hard); a GATE does the same, VEL sets the strength.
+  **HOLD** holds it where it is. PUSH X / PUSH Y (±5 V) push it.
+- **REC** records the ball's way: it starts on the next bar and runs LOOP LEN bars (1, 2, 4 or 8), then **LOOP** plays it
+  back in sync (press LOOP to go back to the free ball, again to play the loop). RESET starts the loop again at bar 1.
+  The REC jack works like the key; right-click on REC: clear the loop.
+- **Time:** from the CLK jack (16ths; right-click › Clock input: 8ths, quarters or 24 PPQN), else from the GENRA it
+  follows (right-click › Follow GENRA: GENRA, GENRA TECHNO or GENRA CHOP, automatically the first one; LINK lights up),
+  else its own clock at 120 BPM. Following a GENRA, the ball is also kicked by one of its tracks (right-click › Kick
+  from: drums (the kick), bass, melody, pads, stab or nothing). A cable in CLK or GATE always wins.
+- Presets in the head (PINBALL, SUPERBALL, MOON, BILLIARD, RAIN, ORBIT …). MIDI-MAP can turn every knob and field,
+  press the four keys and go through the presets.
 
 ## Building
 

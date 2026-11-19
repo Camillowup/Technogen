@@ -9,6 +9,7 @@ extern Model* modelGenraTechno;
 extern Model* modelTechnoGrid;
 extern Model* modelTechnoAblauf;
 extern Model* modelTechnoMod;
+extern Model* modelTechnoKugel;
 
 // the GENRA knobs: dark, the same in every module of the family (res/knob/*.svg)
 struct GenraKnob : RoundKnob {

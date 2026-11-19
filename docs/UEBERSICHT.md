@@ -1,6 +1,6 @@
 # GENRA TECHNO – Übersicht (wo liegt was)
 
-Plugin `GenraTechno` (Marke Genra), vier Module. Stand 2.0.0 (16. Nov. 2026).
+Plugin `GenraTechno` (Marke Genra), fünf Module. Stand 2.0.0 (16. Nov. 2026).
 
 | Datei | Inhalt |
 |---|---|
@@ -9,6 +9,7 @@ Plugin `GenraTechno` (Marke Genra), vier Module. Stand 2.0.0 (16. Nov. 2026).
 | `src/TechnoGrid.cpp` | GRID (Editor, REC über MIDI) |
 | `src/TechnoAblauf.cpp` | ABLAUF (Pads, Song-Zeilen, MAKE SONG, TAKE LIVE übernimmt den LIVE-Song, übergibt `SongScript` ans Hauptmodul) |
 | `src/TechnoMod.cpp` | MOD (4 CV-Spuren, Matrix pro Teil, Song-View) |
+| `src/TechnoKugel.cpp` | KUGEL (XY-Pad mit Ball und Physik, REC/LOOP im Takt; Follow GENRA direkt über den Link-Hub) |
 | `src/TechnoUI.hpp` | Look: Farben, Taster, Dropdowns (Mausrad) |
 | `src/link/` | Link-Hub der GENRA-Plugins (Kopie aus Genra-for-Vcv), für Follow |
 | `tools/*_panel.py`, `tools/tpanel.py` | Panel-Skripte: schreiben `res/*.svg`, `src/*Layout.hpp`, `docs/panels/*.png` |

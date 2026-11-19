@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.9 (19 Nov 2026, test build, no release)
+
+- New module **GENRA TECHNO KUGEL** (24 HP): an XY pad with a ball that follows physics (after the modwave's Kaoss
+  Physics). GRAVITY, TILT (endless, 360°), FRICTION, MASS, BOUNCE; WALL BOUNCE / WRAP / STICK / SLIDE / ROUND; RANGE
+  −10…0 V, ±5 V, 0…10 V; KICK, HOLD, GATE / VEL, PUSH X / Y; outputs X, Y, SPEED, HIT. REC records the ball's way on the
+  next bar for 1, 2, 4 or 8 bars, LOOP plays it back in sync. Time from CLK (resolution by right-click), from the GENRA it
+  follows (Follow GENRA through the link hub) or its own 120 BPM. 20 presets; MIDI-MAP on everything.
+
 ## 2.0.8 (19 Nov 2026, test build, no release)
 
 - MAIN is now **PATTERN**: the pattern in a loop (8 bars again and again; MUTATE and EVOLVE change it). BUILD, DROP and
