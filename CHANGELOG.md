@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.7 (19 Nov 2026, test build, no release)
+
+- MIDI-MAP can press every button of the four modules (not the pads): PLAY, STOP, MAIN, LIVE SONG, NEW and LOCK per
+  track, NEW ALL, LOCK ALL, MUTE, BUILD, DROP, BREAK, FILL, MUTATE, PREV, NEXT, UNDO; in ABLAUF PLAY, STOP, LOOP, PATT,
+  SONG, TAKE LIVE, MAKE SONG, DJ, BANK, VARIATION, INSERT, DELETE, COPY, CLEAR, UNDO; in GRID REC, the tracks, SOLO, VIEW,
+  ACCENT, SLIDE, SNAP, FOLLOW, UNDO, REDO, CLEAR, COPY, PASTE, NEW; in MOD GROW, CHORD, FREEZE, UNI/BI. A value over half
+  presses the button once, as a click does.
+- MOD: the PRESET field can be learnt by MIDI-MAP; a knob goes through the presets (it chooses when the knob rests).
+
 ## 2.0.6 (18 Nov 2026, test build, no release)
 
 - Two new families with 12 styles: BASS (DUBSTEP, RIDDIM, DRUM & BASS, LIQUID DNB, NEUROFUNK, JUNGLE, HALFTIME) and

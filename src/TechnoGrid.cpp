@@ -13,8 +13,31 @@
 using namespace tg;
 namespace L = technogrid_layout;
 
+// the buttons MIDI-MAP can press (BTN_PARAM + i; only ever append)
+static const tui::BtnDef BTNS[] = {
+    {L::BTN_TRK0, "DRUMS"},
+    {L::BTN_TRK1, "BASS"},
+    {L::BTN_TRK2, "STAB"},
+    {L::BTN_TRK3, "LEAD"},
+    {L::BTN_TRK4, "ATMO"},
+    {L::BTN_REC, "REC"},
+    {L::BTN_SOLO, "SOLO"},
+    {L::BTN_VIEWMODE, "VIEW"},
+    {L::BTN_ACC, "ACCENT"},
+    {L::BTN_SLIDE, "SLIDE"},
+    {L::BTN_SNAP, "SNAP"},
+    {L::BTN_FOLLOW, "FOLLOW"},
+    {L::BTN_UNDO, "UNDO"},
+    {L::BTN_REDO, "REDO"},
+    {L::BTN_CLEAR, "CLEAR"},
+    {L::BTN_COPY, "COPY"},
+    {L::BTN_PASTE, "PASTE"},
+    {L::BTN_NEWTRK, "NEW"},
+};
+static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+
 struct TechnoGrid : Module {
-	enum ParamId { BAR_PARAM, ZOOM_PARAM, PITCH_PARAM, VEL_PARAM, NLEN_PARAM, CHANCE_PARAM, RATCH_PARAM, NUM_PARAMS };
+	enum ParamId { BAR_PARAM, ZOOM_PARAM, PITCH_PARAM, VEL_PARAM, NLEN_PARAM, CHANCE_PARAM, RATCH_PARAM, ENUMS(BTN_PARAM, 18), NUM_PARAMS };
 	TechnoLink link;
 	int track = 1, viewMode = 0;
 	bool snap = true, follow = true, rec = false;
@@ -22,6 +45,8 @@ struct TechnoGrid : Module {
 	int heldStep[128];
 	TechnoGrid() {
 		config(NUM_PARAMS, 0, 0, 0);
+		static_assert(sizeof(BTNS) / sizeof(BTNS[0]) == 18, "BTN_PARAM count");
+		tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
 		configParam(BAR_PARAM, 0.f, 3.f, 0.f, "First bar shown", "", 0.f, 1.f, 1.f);
 		paramQuantities[BAR_PARAM]->snapEnabled = true;
 		configSwitch(ZOOM_PARAM, 0.f, 2.f, 1.f, "Bars shown", {"1 bar", "2 bars", "4 bars"});
@@ -615,6 +640,7 @@ struct TechnoGridWidget : ModuleWidget {
 		editT = 2.f;
 	}
 
+	bool btnsMapped = false;
 	TechnoGridWidget(TechnoGrid* module) {
 		setModule(module);
 		mod = module;
@@ -805,6 +831,10 @@ struct TechnoGridWidget : ModuleWidget {
 
 	void step() override {
 		ModuleWidget::step();
+		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
+			tui::mapButtons(this, module, TechnoGrid::BTN_PARAM, BTNS, NUM_BTNS);
+			btnsMapped = true;
+		}
 		if (!mod)
 			return;
 		float dt = APP->window->getLastFrameDuration();
@@ -825,7 +855,7 @@ struct TechnoGridWidget : ModuleWidget {
 			}
 		}
 		// a turned knob changes the selected note
-		for (int i = TechnoGrid::VEL_PARAM; i < TechnoGrid::NUM_PARAMS; i++) {
+		for (int i = TechnoGrid::VEL_PARAM; i <= TechnoGrid::RATCH_PARAM; i++) {
 			float v = mod->params[i].getValue();
 			if (seen && v != last[i] && g && view->selStep >= 0) {
 				touched();

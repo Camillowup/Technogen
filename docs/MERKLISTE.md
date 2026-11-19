@@ -1,8 +1,9 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 18. Nov. 2026, nach Build 2.0.6 (dev, kein Release).
+Stand 19. Nov. 2026, nach Build 2.0.7 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.7: MIDI-MAP auf PLAY, STOP, NEW, LOCK, REC usw. lernen und drücken; MOD-PRESET mit einem Regler.
 - 2.0.6: Familien BASS und GARAGE (12 Stile) nach Gehör, FEEL AUTO/FULL/HALF, STYLE-Liste mit Untermenüs, Wobble- und
   Reese-Bass mit GENRA-Bässen, Swing bis 66 %.
 - 2.0.5: MOD-Tabelle mit Abschnitten als Spalten (Klick, Mausrad, Kopf blättert), IN / IN SEC / IN × SEC mit LFO,

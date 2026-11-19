@@ -11,6 +11,40 @@
 using namespace tg;
 namespace L = genratechno_layout;
 
+// the buttons MIDI-MAP can press (BTN_PARAM + i; only ever append)
+static const tui::BtnDef BTNS[] = {
+    {L::BTN_PLAY, "PLAY"},
+    {L::BTN_STOP, "STOP"},
+    {L::BTN_BUILD, "BUILD"},
+    {L::BTN_DROP, "DROP"},
+    {L::BTN_BREAK, "BREAK"},
+    {L::BTN_FILL, "FILL"},
+    {L::BTN_NEWALL, "NEW ALL"},
+    {L::BTN_MUTATE, "MUTATE"},
+    {L::BTN_LOCKALL, "LOCK ALL"},
+    {L::BTN_UNDO, "UNDO"},
+    {L::BTN_NEW0, "NEW DRUMS"},
+    {L::BTN_NEW1, "NEW BASS"},
+    {L::BTN_NEW2, "NEW STAB"},
+    {L::BTN_NEW3, "NEW LEAD"},
+    {L::BTN_NEW4, "NEW ATMO"},
+    {L::BTN_LOCK0, "LOCK DRUMS"},
+    {L::BTN_LOCK1, "LOCK BASS"},
+    {L::BTN_LOCK2, "LOCK STAB"},
+    {L::BTN_LOCK3, "LOCK LEAD"},
+    {L::BTN_LOCK4, "LOCK ATMO"},
+    {L::BTN_MUTE0, "MUTE DRUMS"},
+    {L::BTN_MUTE1, "MUTE BASS"},
+    {L::BTN_MUTE2, "MUTE STAB"},
+    {L::BTN_MUTE3, "MUTE LEAD"},
+    {L::BTN_MUTE4, "MUTE ATMO"},
+    {L::BTN_PREV, "PREV"},
+    {L::BTN_NEXT, "NEXT"},
+    {L::BTN_MAIN, "MAIN"},
+    {L::BTN_SONGMODE, "LIVE SONG"},
+};
+static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+
 // ================================================================ the registry and the links
 namespace techno_registry {
 static std::mutex mx;
@@ -92,6 +126,8 @@ void TechnoLink::fromJson(json_t* root) {
 // ================================================================ the module
 GenraTechno::GenraTechno() {
 	config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+	static_assert(sizeof(BTNS) / sizeof(BTNS[0]) == 29, "BTN_PARAM count");
+	tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
 	configParam(BPM_PARAM, 60.f, 200.f, 132.f, "Tempo", " BPM");
 	configParam(SWING_PARAM, 50.f, 66.f, 51.f, "Swing", " %");
 	configParam(ENERGY_PARAM, 0.f, 1.f, 0.6f, "Energy", " %", 0.f, 100.f);
@@ -1181,6 +1217,7 @@ struct GenraTechnoWidget : ModuleWidget {
 		gm->userEdit(p);
 	}
 
+	bool btnsMapped = false;
 	GenraTechnoWidget(GenraTechno* module) {
 		setModule(module);
 		gm = module;
@@ -1586,6 +1623,10 @@ struct GenraTechnoWidget : ModuleWidget {
 
 	void step() override {
 		ModuleWidget::step();
+		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
+			tui::mapButtons(this, module, GenraTechno::BTN_PARAM, BTNS, NUM_BTNS);
+			btnsMapped = true;
+		}
 		if (!gm)
 			return;
 		float dt = APP->window->getLastFrameDuration();
@@ -1643,7 +1684,7 @@ struct GenraTechnoWidget : ModuleWidget {
 			lastBpm = bp;
 		}
 		// a knob turned: its value in the display for a moment
-		for (int i = 0; i < GenraTechno::NUM_PARAMS; i++) {
+		for (int i = 0; i < GenraTechno::BTN_PARAM; i++) {
 			float v = gm->params[i].getValue();
 			if (paramsSeen && v != lastParam[i]) {
 				engine::ParamQuantity* pq = gm->paramQuantities[i];

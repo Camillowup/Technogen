@@ -78,8 +78,10 @@ inline void frame(NVGcontext* vg, float x, float y, float w, float h, float r, N
 	nvgStroke(vg);
 }
 
-/** A button: the label in it (shrinks to fit); `lit` lights a toggle, `colOf` lets the colour change. */
-struct TButton : widget::OpaqueWidget {
+/** A button: the label in it (shrinks to fit); `lit` lights a toggle, `colOf` lets the colour change.
+ * With a param (map()), MIDI-MAP and other mapping modules can press it: the param going over 0.5 presses it, going back
+ * under releases it. A click does not set the param (it touches it, for MIDI-MAP's learning). */
+struct TButton : app::ParamWidget {
 	std::string label;
 	std::function<std::string()> labelOf;
 	NVGcolor col = BTN, textCol = TXT;
@@ -90,6 +92,26 @@ struct TButton : widget::OpaqueWidget {
 	std::function<void(ui::Menu*)> rightMenu;
 	float fontSize = 9.f;
 	bool down = false;
+	float lastV = 0.f;
+	bool primed = false;
+	void map(engine::Module* m, int id) {
+		module = m;
+		paramId = id;
+	}
+	void step() override {
+		ParamWidget::step();
+		if (!module || paramId < 0 || paramId >= (int) module->params.size())
+			return;
+		float v = module->params[paramId].getValue();
+		if (primed) {
+			if (v >= 0.5f && lastV < 0.5f && !(enabled && !enabled()) && act)
+				act();
+			if (v < 0.5f && lastV >= 0.5f && release)
+				release();
+		}
+		primed = true; // not on the first frame: a patch saved with the button held does not press it
+		lastV = v;
+	}
 	void draw(const DrawArgs& args) override {
 		NVGcolor c = colOf ? colOf() : col;
 		bool off = enabled && !enabled();
@@ -103,9 +125,13 @@ struct TButton : widget::OpaqueWidget {
 			frame(args.vg, 0.8f, 0.8f, box.size.x - 1.6f, box.size.y - 1.6f, 2.2f, WHITE, 1.3f);
 		textFit(args.vg, bold(), box.size.x / 2, box.size.y / 2 + 0.5f, labelOf ? labelOf() : label, fontSize,
 		        box.size.x - 6.f, off ? mixc(textCol, c, 0.65f) : textCol, NVG_ALIGN_CENTER);
+		ParamWidget::draw(args); // MIDI-MAP's mark
 	}
+	void onDoubleClick(const DoubleClickEvent& e) override { e.consume(this); }
 	void onButton(const ButtonEvent& e) override {
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_PRESS) {
+			if (module && paramId >= 0 && (e.mods & RACK_MOD_MASK) == 0)
+				ParamWidget::onButton(e); // touch the param (MIDI-MAP learns it)
 			if (enabled && !enabled()) {
 				e.consume(this);
 				return;
@@ -127,8 +153,9 @@ struct TButton : widget::OpaqueWidget {
 	}
 };
 
-/** A dropdown field: click opens the list, the mouse wheel steps through it. */
-struct TField : widget::OpaqueWidget {
+/** A dropdown field: click opens the list, the mouse wheel steps through it. With a param (mapSelect()), MIDI-MAP can
+ * turn through the list: the field shows the entry at once and chooses it when the knob rests for 0.3 s. */
+struct TField : app::ParamWidget {
 	std::string prefix;
 	NVGcolor col = TXT;
 	bool fit = false; // shrink a long value to the field (else it is cut)
@@ -138,8 +165,46 @@ struct TField : widget::OpaqueWidget {
 	std::function<void(int)> choose;
 	std::function<bool(int)> separatorBefore;
 	std::function<std::string(int)> groupOf; // set: the list in submenus (items of a group follow each other)
+	const uint32_t* code = nullptr; // the module's JSON-load counter: values set by a patch or undo choose nothing
+	float seen = -1.f;
+	uint32_t seenCode = 0;
+	double movedAt = 0.0;
+	int want = -1;
+	void mapSelect(engine::Module* m, int id, const uint32_t* jsonCode) {
+		module = m;
+		paramId = id;
+		code = jsonCode;
+	}
+	void step() override {
+		ParamWidget::step();
+		if (!module || paramId < 0 || !count || !choose)
+			return;
+		int n = count();
+		float v = module->params[paramId].getValue();
+		uint32_t c = code ? *code : 0;
+		if (c != seenCode || seen < 0.f) {
+			seenCode = c;
+			seen = v;
+			want = -1;
+			return;
+		}
+		double now = system::getTime();
+		if (std::fabs(v - seen) > 1e-5f && n > 0) {
+			seen = v;
+			want = clamp((int) std::round(v * (n - 1)), 0, n - 1);
+			movedAt = now;
+		}
+		if (want >= 0 && now - movedAt >= 0.3) {
+			if (!current || current() != want)
+				choose(want);
+			want = -1;
+		}
+	}
+	void onEnter(const EnterEvent& e) override {}
+	void onLeave(const LeaveEvent& e) override {}
+	void onDoubleClick(const DoubleClickEvent& e) override { e.consume(this); }
 	void draw(const DrawArgs& args) override {
-		std::string v = value ? value() : "";
+		std::string v = want >= 0 && item ? item(want) : (value ? value() : "");
 		nvgSave(args.vg);
 		nvgIntersectScissor(args.vg, 0, 0, box.size.x - 10.f, box.size.y);
 		float x = 4.5f;
@@ -158,9 +223,12 @@ struct TField : widget::OpaqueWidget {
 		nvgClosePath(args.vg);
 		nvgFillColor(args.vg, col);
 		nvgFill(args.vg);
+		ParamWidget::draw(args);
 	}
 	void onButton(const ButtonEvent& e) override {
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_PRESS && count) {
+			if (module && paramId >= 0)
+				ParamWidget::onButton(e); // touch the param (MIDI-MAP learns it)
 			ui::Menu* menu = createMenu();
 			int n = count(), cur = current ? current() : -1;
 			if (groupOf) {
@@ -198,6 +266,19 @@ struct TField : widget::OpaqueWidget {
 	}
 };
 
+/** The buttons MIDI-MAP can press: a table of the panel's rects (from the layout) and names, in the order of the
+ * module's BTN_PARAMs (only ever append). The module configures the params, the widget maps its buttons once. */
+struct BtnDef {
+	const float* rect;
+	const char* name;
+};
+inline void configButtons(engine::Module* m, int first, const BtnDef* defs, int n) {
+	for (int i = 0; i < n; i++) {
+		m->configButton(first + i, std::string(defs[i].name) + " (a button: MIDI-MAP can press it)");
+		m->paramQuantities[first + i]->randomizeEnabled = false;
+	}
+}
+
 template <class W>
 W* place(ModuleWidget* mw, const float* r) {
 	W* w = new W;
@@ -221,4 +302,17 @@ struct Drawn : widget::Widget {
 	}
 };
 
+inline void mapButtons(ModuleWidget* mw, engine::Module* m, int first, const BtnDef* defs, int n) {
+	if (!m)
+		return;
+	for (widget::Widget* w : mw->children)
+		if (TButton* b = dynamic_cast<TButton*>(w))
+			for (int i = 0; i < n; i++) {
+				Rect r = mmRect(defs[i].rect);
+				if (b->box.pos.equals(r.pos) && b->box.size.equals(r.size))
+					b->map(m, first + i);
+			}
+}
+
 } // namespace tui
+

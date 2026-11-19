@@ -14,6 +14,35 @@
 using namespace tg;
 namespace L = technoablauf_layout;
 
+// the buttons MIDI-MAP can press (BTN_PARAM + i; only ever append)
+static const tui::BtnDef BTNS[] = {
+    {L::BTN_PLAY, "PLAY"},
+    {L::BTN_STOP, "STOP"},
+    {L::BTN_LOOP, "LOOP"},
+    {L::BTN_PATT, "PATT"},
+    {L::BTN_SONG, "SONG"},
+    {L::BTN_TAKE, "TAKE LIVE"},
+    {L::BTN_MAKE, "MAKE SONG"},
+    {L::BTN_DJ, "DJ"},
+    {L::BTN_BANK0, "BANK 1"},
+    {L::BTN_BANK1, "BANK 2"},
+    {L::BTN_BANK2, "BANK 3"},
+    {L::BTN_BANK3, "BANK 4"},
+    {L::BTN_VAR0, "VARIATION INTRO"},
+    {L::BTN_VAR1, "VARIATION GROOVE"},
+    {L::BTN_VAR2, "VARIATION BUILD"},
+    {L::BTN_VAR3, "VARIATION DROP"},
+    {L::BTN_VAR4, "VARIATION BREAK"},
+    {L::BTN_VAR5, "VARIATION OUTRO"},
+    {L::BTN_INSERT, "INSERT"},
+    {L::BTN_DELETE, "DELETE"},
+    {L::BTN_COPY, "COPY"},
+    {L::BTN_CLEAR, "CLEAR"},
+    {L::BTN_CLEARALL, "CLEAR ALL"},
+    {L::BTN_UNDO, "UNDO"},
+};
+static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+
 static const int BARS_CHOICES[7] = {4, 8, 16, 24, 32, 48, 64};
 struct Form {
 	const char* name;
@@ -32,7 +61,7 @@ struct Pad {
 };
 
 struct TechnoAblauf : Module {
-	enum ParamId { ROW_PARAM, PAD_PARAM, BARS_PARAM, PART_PARAM, NUM_PARAMS };
+	enum ParamId { ROW_PARAM, PAD_PARAM, BARS_PARAM, PART_PARAM, ENUMS(BTN_PARAM, 24), NUM_PARAMS };
 	enum InputId { RUN_INPUT, RST_INPUT, NEXT_INPUT, PADCV_INPUT, ROWCV_INPUT, NUM_INPUTS };
 	enum OutputId { END_OUTPUT, ROW_OUTPUT, PART_OUTPUT, BUILD_OUTPUT, DROP_OUTPUT, PHRASE_OUTPUT, NUM_OUTPUTS };
 	TechnoLink link;
@@ -55,6 +84,8 @@ struct TechnoAblauf : Module {
 
 	TechnoAblauf() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, 0);
+		static_assert(sizeof(BTNS) / sizeof(BTNS[0]) == 24, "BTN_PARAM count");
+		tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
 		configParam(ROW_PARAM, 0.f, 127.f, 0.f, "Row", "", 0.f, 1.f, 1.f);
 		paramQuantities[ROW_PARAM]->snapEnabled = true;
 		configParam(PAD_PARAM, 0.f, 63.f, 0.f, "Pad of the row", "", 0.f, 1.f, 1.f);
@@ -505,6 +536,7 @@ struct TechnoAblaufWidget : ModuleWidget {
 			g->post(p.pat, !g->running.load());
 	}
 
+	bool btnsMapped = false;
 	TechnoAblaufWidget(TechnoAblauf* module) {
 		setModule(module);
 		mod = module;
@@ -1015,6 +1047,10 @@ struct TechnoAblaufWidget : ModuleWidget {
 
 	void step() override {
 		ModuleWidget::step();
+		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
+			tui::mapButtons(this, module, TechnoAblauf::BTN_PARAM, BTNS, NUM_BTNS);
+			btnsMapped = true;
+		}
 		if (!mod)
 			return;
 		float dt = APP->window->getLastFrameDuration();

@@ -19,6 +19,18 @@
 using namespace tg;
 namespace L = technomod_layout;
 
+// the buttons MIDI-MAP can press (BTN_PARAM + i; only ever append)
+static const tui::BtnDef BTNS[] = {
+    {L::BTN_UNI0, "UNI/BI A"},
+    {L::BTN_UNI1, "UNI/BI B"},
+    {L::BTN_UNI2, "UNI/BI C"},
+    {L::BTN_UNI3, "UNI/BI D"},
+    {L::BTN_GROW, "GROW"},
+    {L::BTN_CHORD, "CHORD"},
+    {L::BTN_FREEZE, "FREEZE"},
+};
+static const int NUM_BTNS = (int) (sizeof(BTNS) / sizeof(BTNS[0]));
+
 enum Shape { SH_OFF, SH_LOW, SH_MID, SH_HIGH, SH_RISE, SH_FALL, SH_SWELL, SH_FADE, SH_WAVE, SH_PUMP, SH_WANDER, SH_STEPS, SH_JUMP, SH_DIP,
              SH_IN, SH_INSEC, SH_INMUL, NUM_SHAPES };
 static const char* const SHAPE_NAMES[NUM_SHAPES] = {"OFF",  "LOW",  "MID",    "HIGH",  "RISE", "FALL", "SWELL",
@@ -110,7 +122,7 @@ static float shapeValue(int s, float t, float lastBar, double wave, float beat, 
 }
 
 struct TechnoMod : Module {
-	enum ParamId { ENUMS(DEPTH_PARAM, 4), ENUMS(SMOOTH_PARAM, 4), NUM_PARAMS };
+	enum ParamId { ENUMS(DEPTH_PARAM, 4), ENUMS(SMOOTH_PARAM, 4), ENUMS(BTN_PARAM, 7), PRESETSEL_PARAM, NUM_PARAMS };
 	enum InputId { CLK_INPUT, RST_INPUT, PART_INPUT, DEPTH_INPUT, ENUMS(LANEIN_INPUT, 4), ENUMS(SEC_INPUT, NUM_SEC_IN), NUM_INPUTS };
 	enum OutputId { ENUMS(LANE_OUTPUT, 4), PHRASE_OUTPUT, PART_OUTPUT, BAR_OUTPUT, NUM_OUTPUTS };
 	TechnoLink link;
@@ -148,6 +160,11 @@ struct TechnoMod : Module {
 
 	TechnoMod() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, 0);
+		static_assert(sizeof(BTNS) / sizeof(BTNS[0]) == 7, "BTN_PARAM count");
+		tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
+		configParam(PRESETSEL_PARAM, 0.f, 1.f, 0.f, "Preset select (for MIDI-MAP: a knob goes through the presets)", " %", 0.f, 100.f);
+		paramQuantities[PRESETSEL_PARAM]->randomizeEnabled = false;
+		paramQuantities[PRESETSEL_PARAM]->resetEnabled = false;
 		for (int j = 0; j < 4; j++) {
 			std::string n(1, (char) ('A' + j));
 			configParam(DEPTH_PARAM + j, 0.f, 1.f, 0.8f, "Lane " + n + " depth", " %", 0.f, 100.f);
@@ -359,7 +376,9 @@ struct TechnoMod : Module {
 		json_object_set_new(root, "sections", o);
 		return root;
 	}
+	uint32_t jsonCode = 0; // bumped by dataFromJson: the preset select (MIDI-MAP) does not load then
 	void dataFromJson(json_t* root) override {
+		jsonCode++;
 		link.fromJson(root);
 		if (json_t* m = json_object_get(root, "matrix"))
 			for (int k = 0; k < 24 && k < (int) json_array_size(m); k++)
@@ -652,6 +671,7 @@ struct TechnoModWidget : ModuleWidget {
 	bool secHere[NUM_SEC_IN] = {};
 	std::string secTip[NUM_SEC_IN];
 
+	bool btnsMapped = false;
 	TechnoModWidget(TechnoMod* module) {
 		setModule(module);
 		mod = module;
@@ -729,6 +749,8 @@ struct TechnoModWidget : ModuleWidget {
 		addOutput(createOutputCentered<PJ301MPort>(mm(L::OUT_PART), module, TechnoMod::PART_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm(L::OUT_BAR), module, TechnoMod::BAR_OUTPUT));
 		TField* pr = place<TField>(this, L::F_PRESET);
+		if (module)
+			pr->mapSelect(module, TechnoMod::PRESETSEL_PARAM, &module->jsonCode);
 		pr->prefix = "PRESET";
 		pr->value = [=]() { return std::string(PRESETS[mod ? mod->preset : 0].name); };
 		pr->count = []() { return 6; };
@@ -895,6 +917,10 @@ struct TechnoModWidget : ModuleWidget {
 
 	void step() override {
 		ModuleWidget::step();
+		if (!btnsMapped) { // the buttons for MIDI-MAP (the panel is built by now)
+			tui::mapButtons(this, module, TechnoMod::BTN_PARAM, BTNS, NUM_BTNS);
+			btnsMapped = true;
+		}
 		if (!mod)
 			return;
 		mod->link.uiStep(APP->window->getLastFrameDuration());
