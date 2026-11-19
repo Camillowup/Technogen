@@ -23,5 +23,9 @@ Stand 19. Nov. 2026, nach Build 2.0.7 (dev, kein Release).
 - Schriftgrösse im Display bei 100 % Zoom (Entscheid nach dem Test).
 
 ## Für später (entschieden, noch nicht gebaut)
+
+- **MIDI-MAP für die übrigen Felder** (Prüfung 19. Nov. 2026, wie MOD-PRESET in 2.0.7 über `TField::mapSelect`):
+  Hauptmodul STYLE, KEY, SCALE, FEEL, BUILD, TYPE ×5; ABLAUF SONG FORM; MOD TARGET ×4, BARS ×4. Bewusst nicht: Pads,
+  Songliste, Zeitleisten, MOD-Tabelle, GRID-Editor.
 - Weitere Module: GENRA TECHNO CHORD, danach GENRA TECHNO ACID.
 - Look kann später noch geändert werden (vorerst dunkler GENRA-Look mit Spurfarben).
