@@ -26,7 +26,8 @@ Stand 19. Nov. 2026, nach Build 2.0.7 (dev, kein Release).
 
 - **PATTERN statt MAIN, PLAY in PATT** (19. Nov. 2026):
   - Im Hauptmodul heisst MAIN neu **PATTERN**: spielt das Pattern von GENRA TECHNO als einfache Schleife (kein eigener
-    Ablauf mit Intro/Build/Drop mehr; die gibt es von Hand über BUILD, DROP, BREAK).
+    Ablauf mit Intro/Build/Drop mehr; die gibt es von Hand über BUILD, DROP, BREAK; Veränderung mit MUTATE von Hand
+    oder EVOLVE alle 8 Takte).
   - Steht ABLAUF auf PATT und ist ein Pad gewählt, spielt dieses Pad in Schleife als sein eigener Teil (Break 2 als
     Break) – mit PLAY in ABLAUF und mit PLAY im Hauptmodul gleich. Ein anderes Pad am nächsten Takt, bis STOP.
   - PLAY in ABLAUF springt nicht mehr auf SONG, solange PATT gewählt ist. LIVE SONG (Hauptmodul) und SONG (ABLAUF,
