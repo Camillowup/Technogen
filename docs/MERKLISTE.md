@@ -24,10 +24,13 @@ Stand 19. Nov. 2026, nach Build 2.0.7 (dev, kein Release).
 
 ## Für später (entschieden, noch nicht gebaut)
 
-- **ABLAUF PLAY in PATT** (19. Nov. 2026): PLAY schaltet bisher immer auf SONG. Neu: in PATT startet PLAY GENRA TECHNO
-  mit dem gewählten Pad, ABLAUF bleibt auf PATT; das Pad läuft als sein eigener Teil in Schleife (Break 2 als Break, nicht
-  im MAIN-Ablauf), ein anderes Pad am nächsten Takt, bis STOP. SONG bleibt wie bisher. TECHNO-Pads (ohne Teil) laufen
-  weiter im MAIN-Ablauf.
+- **PATTERN statt MAIN, PLAY in PATT** (19. Nov. 2026):
+  - Im Hauptmodul heisst MAIN neu **PATTERN**: spielt das Pattern von GENRA TECHNO als einfache Schleife (kein eigener
+    Ablauf mit Intro/Build/Drop mehr; die gibt es von Hand über BUILD, DROP, BREAK).
+  - Steht ABLAUF auf PATT und ist ein Pad gewählt, spielt dieses Pad in Schleife als sein eigener Teil (Break 2 als
+    Break) – mit PLAY in ABLAUF und mit PLAY im Hauptmodul gleich. Ein anderes Pad am nächsten Takt, bis STOP.
+  - PLAY in ABLAUF springt nicht mehr auf SONG, solange PATT gewählt ist. LIVE SONG (Hauptmodul) und SONG (ABLAUF,
+    die Zeilen) bleiben die beiden Song-Arten.
 
 - **MIDI-MAP für die übrigen Felder** (Prüfung 19. Nov. 2026, wie MOD-PRESET in 2.0.7 über `TField::mapSelect`):
   Hauptmodul STYLE, KEY, SCALE, FEEL, BUILD, TYPE ×5; ABLAUF SONG FORM; MOD TARGET ×4, BARS ×4. Bewusst nicht: Pads,
