@@ -1,8 +1,15 @@
 # GENRA TECHNO – Merkliste (nur Offenes)
 
-Stand 19. Nov. 2026, nach Build 2.0.9 (dev, kein Release).
+Stand 25. Nov. 2026, nach Build 2.0.10 (dev, kein Release).
 
 ## Zu testen in Rack
+- 2.0.10: versteckte Taste PATTERN / LIVE SONG mit GENRA MAP-X 2.2.0 (MPD218 Bank A, Pad 14): jeder Druck schaltet um,
+  auch nachdem mit der Maus umgeschaltet wurde. Dazu alle Tasten über MAP-X (MAP-X hält sie, solange das Pad gedrückt
+  ist): kommt jeder Druck an?
+
+## Später
+- Falls MAP-X-Drücke trotzdem verloren gehen: die Tasten aller vier Module (TButton) im Audioteil auswerten statt im
+  Zeichnen (`step()`), wie bei GENRA; dann reicht auch ein kurzer Druck von MIDI-MAP oder anderen Mappern.
 - 2.0.9 KUGEL: Ball werfen (ziehen und loslassen), GRAVITY/TILT (Endlos-Regler, Pfeil im Pad), FRICTION, MASS, BOUNCE,
   die fünf WALL-Arten, RANGE an X/Y/SPEED, SMOOTH, HIT; KICK, HOLD, GATE/VEL, PUSH X/Y; REC startet am nächsten Takt,
   LOOP spielt synchron (mit GENRA und GENRA TECHNO per Follow, mit CLK in 16tel/8tel/Vierteln/24 PPQN, ohne beides

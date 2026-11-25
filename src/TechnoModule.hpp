@@ -68,6 +68,7 @@ struct GenraTechno : Module {
 		ENUMS(LEN_PARAM, 5),
 		ENUMS(BTN_PARAM, 29), // the buttons, for MIDI-MAP (GenraTechno.cpp: BTNS)
 		ENUMS(FLD_PARAM, 10), // the fields, for MIDI-MAP (GenraTechno.cpp: FLDS)
+		MODETGL_PARAM,        // 2.0.10: PATTERN / LIVE SONG on one button, for a controller (not on the panel)
 		NUM_PARAMS
 	};
 	enum InputId { CLK_INPUT, RST_INPUT, RUN_INPUT, NEW_INPUT, BUILD_INPUT, DROP_INPUT, ENERGY_INPUT, EVOLVE_INPUT, NUM_INPUTS };
@@ -120,6 +121,7 @@ struct GenraTechno : Module {
 	std::atomic<int> loopPart{-1};    // PATTERN: the part the loop plays as (an ABLAUF pad's), -1: a drop
 	std::atomic<bool> mainReq{false}; // go into MAIN at the next bar
 	std::atomic<int> jumpBar{-1};     // jump to this bar of the song at the next bar
+	dsp::BooleanTrigger modeTgl;      // MODETGL_PARAM (read in process(), so a short press of a mapper is not lost)
 	bool liveDj = false;              // LIVE song: DJ intro and outro (32 bars, drums only)
 
 	// ---------------------------------------------------------------- audio → UI (requests and what the displays show)

@@ -136,6 +136,8 @@ GenraTechno::GenraTechno() {
 	tui::configButtons(this, BTN_PARAM, BTNS, NUM_BTNS);
 	static_assert(sizeof(FLDS) / sizeof(FLDS[0]) == 10, "FLD_PARAM count");
 	tui::configSelects(this, FLD_PARAM, FLDS, NUM_FLDS);
+	configButton(MODETGL_PARAM, "PATTERN / LIVE SONG (for a controller: each press switches between the two)");
+	paramQuantities[MODETGL_PARAM]->randomizeEnabled = false;
 	configParam(BPM_PARAM, 60.f, 200.f, 132.f, "Tempo", " BPM");
 	configParam(SWING_PARAM, 50.f, 66.f, 51.f, "Swing", " %");
 	configParam(ENERGY_PARAM, 0.f, 1.f, 0.6f, "Energy", " %", 0.f, 100.f);
@@ -722,6 +724,20 @@ void GenraTechno::fireStep(float sr) {
 
 void GenraTechno::process(const ProcessArgs& args) {
 	float sr = args.sampleRate;
+	// ---- PATTERN / LIVE SONG on one button (MAP-X, MIDI-MAP): as the two buttons on the panel
+	if (modeTgl.process(params[MODETGL_PARAM].getValue() > 0.5f)) {
+		if (mainMode.load()) { // as LIVE SONG
+			mainMode = false;
+			jumpBar = 0;
+			if (!running.load())
+				runReq = true;
+		}
+		else { // as PATTERN
+			mainMode = true;
+			if (running.load())
+				mainReq = true;
+		}
+	}
 	// ---- transport
 	bool runEdge = runTrig.process(inputs[RUN_INPUT].getVoltage(), 0.1f, 1.f);
 	if (runGate) {

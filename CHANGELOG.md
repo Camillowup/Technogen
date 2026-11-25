@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.10 (25 Nov 2026, test build, no release)
+
+- GENRA TECHNO: a hidden button for controllers, **PATTERN / LIVE SONG** (parameter after the fields): each press
+  switches between PATTERN and LIVE SONG, as the two buttons on the panel do. It is read in the audio thread, so a
+  short press from a mapper (GENRA MAP-X, MIDI-MAP) is never lost. GENRA MAP-X 2.2.0 puts it on a pad of the MPD218.
+
 ## 2.0.9 (19 Nov 2026, test build, no release)
 
 - New module **GENRA TECHNO KUGEL** (24 HP): an XY pad with a ball that follows physics (after the modwave's Kaoss
